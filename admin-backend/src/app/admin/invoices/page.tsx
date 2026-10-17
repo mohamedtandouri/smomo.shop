@@ -1,21 +1,21 @@
 "use client"
 
 import { useState, useEffect, useMemo, useCallback } from "react"
-import { 
-  Search, 
-  Download, 
-  Eye, 
-  Plus, 
-  CheckCircle, 
-  Clock, 
-  AlertCircle, 
-  Loader2, 
-  Printer, 
-  Package, 
-  X, 
+import {
+  Search,
+  Download,
+  Eye,
+  Plus,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  Loader2,
+  Printer,
+  Package,
+  X,
   RefreshCw,
-  TrendingUp,
-  FileText
+  FileText,
+  Building2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -76,8 +76,219 @@ interface OrderRecord {
   } | null
 }
 
+// قاموس ترجمة مخصص لصفحة الفوترة والطباعة الرسمية (يدعم العربية والإنجليزية والفرنسية)
+const INVOICE_LABELS: Record<"ar" | "en" | "fr", Record<string, string>> = {
+  ar: {
+    title: "الفواتير والسجلات المالية",
+    subtitle: "إدارة فواتير قاعدة البيانات الحية، متابعة مدفوعات العملاء، وتخصيص مخزون المنتجات.",
+    refresh: "تحديث",
+    create_invoice: "إنشاء فاتورة",
+    total_billed: "إجمالي المبالغ المفوترة",
+    from_orders: "من إجمالي {count} طلبات في قاعدة البيانات",
+    paid_invoices: "الفواتير المدفوعة",
+    paid_desc: "المعاملات المكتملة أو التي تم شحنها",
+    pending_invoices: "قيد الانتظار / المعالجة",
+    pending_desc: "بانتظار التجهيز أو تحصيل الدفعة",
+    filter_all: "الكل",
+    filter_paid: "مدفوعة",
+    filter_pending: "قيد الانتظار",
+    filter_overdue: "متأخرة / ملغاة",
+    search_placeholder: "ابحث برقم الفاتورة، اسم العميل، أو رمز SKU...",
+    loading: "جاري تحميل الفواتير من قاعدة البيانات...",
+    no_invoices: "لا توجد فواتير مطابقة",
+    no_invoices_sub: "جرب تعديل معايير البحث أو قم بإنشاء فاتورة جديدة.",
+    col_id: "رقم الفاتورة",
+    col_items: "المنتج / البيان",
+    col_sku: "رمز SKU",
+    col_units: "الوحدات",
+    col_stock: "المخزون",
+    col_date: "التاريخ",
+    col_customer: "العميل",
+    col_amount: "المبلغ",
+    col_status: "الحالة",
+    col_add_stock: "إضافة مخزون",
+    col_action: "الإجراءات",
+    add_btn: "إضافة",
+    no_linked_item: "لا يوجد منتج مرتبط",
+    status_paid: "مدفوعة",
+    status_pending: "قيد الانتظار",
+    status_overdue: "متأخرة",
+    preview_invoice: "معاينة الفاتورة",
+    print_download: "طباعة / تحميل PDF",
+    invoice_heading: "فاتورة ضريبية / INVOICE",
+    issue_date: "تاريخ الإصدار",
+    order_ref: "مرجع الطلب",
+    billed_to: "مُصدرة إلى العميل",
+    payment_status: "حالة السداد",
+    no_email: "لم يتم تحديد بريد إلكتروني",
+    item_no: "#",
+    item_desc: "الوصف / البيان",
+    item_qty: "الكمية",
+    item_unit_price: "سعر الوحدة",
+    item_total: "الإجمالي",
+    general_order: "طلب متجر عام",
+    subtotal: "المجموع الفرعي",
+    discount: "الخصم",
+    shipping: "رسوم الشحن",
+    tax: "الضريبة المضافة",
+    total_due: "الإجمالي المستحق",
+    notes_label: "ملاحظات الفاتورة",
+    footer_thanks: "شكراً لتعاملكم مع متجر Smomo — هذه الفاتورة صادرة إلكترونياً ومعتمدة رسمياً.",
+    close: "إغلاق",
+    print_pdf_btn: "طباعة / حفظ كملف PDF",
+    create_modal_title: "إنشاء فاتورة جديدة",
+    create_modal_desc: "إنشاء سجل فوترة جديد وحفظه مباشرة في قاعدة البيانات.",
+    customer_name_label: "اسم العميل *",
+    customer_email_label: "البريد الإلكتروني للعميل",
+    amount_label: "المبلغ ($) *",
+    status_label: "الحالة",
+    note_label: "ملاحظات الفاتورة / وصف الخدمة",
+    save_invoice: "حفظ الفاتورة",
+    cancel: "إلغاء",
+  },
+  en: {
+    title: "Invoices",
+    subtitle: "Live database billing records, track customer payments, and manage inventory stock allocations.",
+    refresh: "Refresh",
+    create_invoice: "Create Invoice",
+    total_billed: "Total Billed Amount",
+    from_orders: "From {count} total orders in database",
+    paid_invoices: "Paid Invoices",
+    paid_desc: "Processed or shipped transactions",
+    pending_invoices: "Pending / Processing",
+    pending_desc: "Awaiting fulfillment or payment capture",
+    filter_all: "All",
+    filter_paid: "Paid",
+    filter_pending: "Pending",
+    filter_overdue: "Overdue",
+    search_placeholder: "Search by invoice, customer, SKU...",
+    loading: "Loading live database invoices...",
+    no_invoices: "No invoices found",
+    no_invoices_sub: "Try adjusting your search criteria or create a new invoice.",
+    col_id: "Invoice ID",
+    col_items: "Name / Items",
+    col_sku: "SKU",
+    col_units: "Units",
+    col_stock: "Stock",
+    col_date: "Date",
+    col_customer: "Customer",
+    col_amount: "Amount",
+    col_status: "Status",
+    col_add_stock: "Add stock",
+    col_action: "Action",
+    add_btn: "Add",
+    no_linked_item: "No linked item",
+    status_paid: "Paid",
+    status_pending: "Pending",
+    status_overdue: "Overdue",
+    preview_invoice: "Preview Invoice",
+    print_download: "Print / Download PDF",
+    invoice_heading: "INVOICE",
+    issue_date: "Issue Date",
+    order_ref: "Order Ref",
+    billed_to: "Billed To",
+    payment_status: "Payment Status",
+    no_email: "No email provided",
+    item_no: "#",
+    item_desc: "Description",
+    item_qty: "Qty",
+    item_unit_price: "Unit Price",
+    item_total: "Amount",
+    general_order: "General Store Order",
+    subtotal: "Subtotal",
+    discount: "Discount",
+    shipping: "Shipping Fee",
+    tax: "Tax",
+    total_due: "Total Due",
+    notes_label: "Invoice Notes",
+    footer_thanks: "Thank you for your business with Smomo Store Inc. — Official computer-generated invoice.",
+    close: "Close",
+    print_pdf_btn: "Print / Save PDF",
+    create_modal_title: "Create New Invoice",
+    create_modal_desc: "Generates a new billing record and stores it directly into the database.",
+    customer_name_label: "Customer Name *",
+    customer_email_label: "Customer Email",
+    amount_label: "Amount ($) *",
+    status_label: "Status",
+    note_label: "Invoice Note / Item description",
+    save_invoice: "Save Invoice",
+    cancel: "Cancel",
+  },
+  fr: {
+    title: "Factures",
+    subtitle: "Registres de facturation en direct, suivi des paiements clients et gestion des stocks.",
+    refresh: "Actualiser",
+    create_invoice: "Créer une facture",
+    total_billed: "Montant total facturé",
+    from_orders: "Sur {count} commandes au total",
+    paid_invoices: "Factures payées",
+    paid_desc: "Transactions traitées ou expédiées",
+    pending_invoices: "En attente / En cours",
+    pending_desc: "En attente d'exécution ou de paiement",
+    filter_all: "Tout",
+    filter_paid: "Payées",
+    filter_pending: "En attente",
+    filter_overdue: "En retard",
+    search_placeholder: "Rechercher par facture, client, SKU...",
+    loading: "Chargement des factures...",
+    no_invoices: "Aucune facture trouvée",
+    no_invoices_sub: "Essayez de modifier vos critères de recherche ou créez-en une nouvelle.",
+    col_id: "N° Facture",
+    col_items: "Articles",
+    col_sku: "SKU",
+    col_units: "Unités",
+    col_stock: "Stock",
+    col_date: "Date",
+    col_customer: "Client",
+    col_amount: "Montant",
+    col_status: "Statut",
+    col_add_stock: "Ajouter stock",
+    col_action: "Actions",
+    add_btn: "Ajouter",
+    no_linked_item: "Aucun article lié",
+    status_paid: "Payée",
+    status_pending: "En attente",
+    status_overdue: "En retard",
+    preview_invoice: "Aperçu de la facture",
+    print_download: "Imprimer / Télécharger PDF",
+    invoice_heading: "FACTURE",
+    issue_date: "Date d'émission",
+    order_ref: "Réf. Commande",
+    billed_to: "Facturé à",
+    payment_status: "Statut du paiement",
+    no_email: "Aucun e-mail fourni",
+    item_no: "#",
+    item_desc: "Description",
+    item_qty: "Qté",
+    item_unit_price: "Prix unitaire",
+    item_total: "Montant",
+    general_order: "Commande générale",
+    subtotal: "Sous-total",
+    discount: "Remise",
+    shipping: "Livraison",
+    tax: "Taxe",
+    total_due: "Total à payer",
+    notes_label: "Notes de facturation",
+    footer_thanks: "Merci pour votre confiance — Facture officielle générée électroniquement par Smomo Store.",
+    close: "Fermer",
+    print_pdf_btn: "Imprimer / Enregistrer PDF",
+    create_modal_title: "Créer une nouvelle facture",
+    create_modal_desc: "Génère un nouvel enregistrement de facturation dans la base de données.",
+    customer_name_label: "Nom du client *",
+    customer_email_label: "E-mail du client",
+    amount_label: "Montant ($) *",
+    status_label: "Statut",
+    note_label: "Note / Description",
+    save_invoice: "Enregistrer",
+    cancel: "Annuler",
+  },
+}
+
 export default function InvoicesPage() {
-  const { t } = useLocaleStore()
+  const { language, direction } = useLocaleStore()
+  const lang = (language === "ar" || language === "fr" ? language : "en") as "ar" | "en" | "fr"
+  const L = INVOICE_LABELS[lang]
+
   const [orders, setOrders] = useState<OrderRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState("All")
@@ -100,11 +311,11 @@ export default function InvoicesPage() {
   const [newStatus, setNewStatus] = useState("Pending")
   const [newNote, setNewNote] = useState("")
 
-  // Fetch real orders from database via API
+  // جلب الفواتير الحية من قاعدة البيانات
   const fetchInvoices = useCallback(async () => {
     try {
       setIsLoading(true)
-      const res = await fetch("/api/orders")
+      const res = await fetch("/api/orders", { cache: "no-store" })
       const data = await res.json()
       if (data.success && Array.isArray(data.orders)) {
         setOrders(data.orders)
@@ -122,6 +333,20 @@ export default function InvoicesPage() {
   useEffect(() => {
     fetchInvoices()
   }, [fetchInvoices])
+
+  // دالة تنفيذ الطباعة أو التحميل كملف PDF بشكل كامل دون اقتطاع
+  const handleTriggerPrint = useCallback((orderToPrint?: OrderRecord) => {
+    if (orderToPrint) {
+      setSelectedInvoice(orderToPrint)
+      setIsInvoiceModalOpen(true)
+      // الانتظار لحظة حتى يكتمل رسم النافذة في DOM ثم استدعاء طباعة المتصفح مع تفعيل @media print
+      setTimeout(() => {
+        window.print()
+      }, 250)
+    } else {
+      window.print()
+    }
+  }, [])
 
   // Filter & Search logic
   const filteredOrders = useMemo(() => {
@@ -141,7 +366,6 @@ export default function InvoicesPage() {
         primaryProduct.includes(q) ||
         primarySku.includes(q)
 
-      // Map DB statuses to Invoice Filter tabs
       const orderStatus = order.status.toLowerCase()
       let matchesFilter = true
       if (filter === "Paid") {
@@ -176,7 +400,7 @@ export default function InvoicesPage() {
     }
   }, [orders])
 
-  // Stock Add Action (persists directly to Product stock in DB)
+  // Stock Add Action
   const handleAddStock = async (productId?: string) => {
     if (!productId) {
       toast.error("No associated product found for this invoice item")
@@ -202,7 +426,7 @@ export default function InvoicesPage() {
 
       const data = await res.json()
       if (data.success) {
-        toast.success(`Added +${qty} units to product inventory`)
+        toast.success(`+${qty}`)
         setStockAddAmount((prev) => ({ ...prev, [productId]: 0 }))
         fetchInvoices()
       } else {
@@ -215,7 +439,7 @@ export default function InvoicesPage() {
     }
   }
 
-  // Create Invoice Action (persists directly to Order table in DB)
+  // Create Invoice Action
   const handleCreateInvoice = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newCustomerName.trim()) {
@@ -244,7 +468,7 @@ export default function InvoicesPage() {
 
       const data = await res.json()
       if (data.success) {
-        toast.success("Invoice created successfully in database")
+        toast.success("Invoice created successfully")
         setIsCreateModalOpen(false)
         setNewCustomerName("")
         setNewCustomerEmail("")
@@ -266,42 +490,47 @@ export default function InvoicesPage() {
     const s = status.toLowerCase()
     if (s === "paid" || s === "delivered" || s === "shipped") {
       return (
-        <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-          <CheckCircle className="h-3 w-3 mr-1" /> Paid
+        <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 gap-1">
+          <CheckCircle className="h-3 w-3" /> {L.status_paid}
         </Badge>
       )
     }
     if (s === "pending" || s === "processing") {
       return (
-        <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-          <Clock className="h-3 w-3 mr-1" /> Pending
+        <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 gap-1">
+          <Clock className="h-3 w-3" /> {L.status_pending}
         </Badge>
       )
     }
     return (
-      <Badge variant="secondary" className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
-        <AlertCircle className="h-3 w-3 mr-1" /> Overdue
+      <Badge variant="secondary" className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 gap-1">
+        <AlertCircle className="h-3 w-3" /> {L.status_overdue}
       </Badge>
     )
   }
 
+  const filterTabs = [
+    { key: "All", label: L.filter_all },
+    { key: "Paid", label: L.filter_paid },
+    { key: "Pending", label: L.filter_pending },
+    { key: "Overdue", label: L.filter_overdue },
+  ]
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 no-print">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Invoices</h1>
-          <p className="text-muted-foreground text-sm">
-            Live database billing records, track customer payments, and manage inventory stock allocations.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight">{L.title}</h1>
+          <p className="text-muted-foreground text-sm">{L.subtitle}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => fetchInvoices()} disabled={isLoading} className="gap-2">
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-            Refresh
+            {L.refresh}
           </Button>
           <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2 bg-primary">
-            <Plus className="h-4 w-4" /> Create Invoice
+            <Plus className="h-4 w-4" /> {L.create_invoice}
           </Button>
         </div>
       </div>
@@ -310,37 +539,37 @@ export default function InvoicesPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Total Billed Amount</CardDescription>
-            <CardTitle className="text-2xl font-bold text-foreground font-mono">
+            <CardDescription className="text-xs">{L.total_billed}</CardDescription>
+            <CardTitle dir="ltr" className="text-2xl font-bold text-foreground font-mono inline-block">
               ${metrics.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 text-xs text-muted-foreground">
-            From {metrics.totalCount} total orders in database
+            {L.from_orders.replace("{count}", String(metrics.totalCount))}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Paid Invoices</CardDescription>
+            <CardDescription className="text-xs">{L.paid_invoices}</CardDescription>
             <CardTitle className="text-2xl font-bold text-emerald-600 font-mono">
               {metrics.paidCount}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 text-xs text-muted-foreground">
-            Processed or shipped transactions
+            {L.paid_desc}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Pending / Processing</CardDescription>
+            <CardDescription className="text-xs">{L.pending_invoices}</CardDescription>
             <CardTitle className="text-2xl font-bold text-amber-600 font-mono">
               {metrics.pendingCount}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 text-xs text-muted-foreground">
-            Awaiting fulfillment or payment capture
+            {L.pending_desc}
           </CardContent>
         </Card>
       </div>
@@ -350,26 +579,28 @@ export default function InvoicesPage() {
         <CardHeader className="py-4 bg-muted/20 border-b">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex gap-2 bg-muted/50 p-1 rounded-lg">
-              {["All", "Paid", "Pending", "Overdue"].map((f) => (
+              {filterTabs.map((tab) => (
                 <button
-                  key={f}
-                  onClick={() => setFilter(f)}
+                  key={tab.key}
+                  onClick={() => setFilter(tab.key)}
                   className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                    filter === f ? "bg-background shadow-xs text-foreground font-semibold" : "text-muted-foreground hover:text-foreground"
+                    filter === tab.key
+                      ? "bg-background shadow-xs text-foreground font-semibold"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {f}
+                  {tab.label}
                 </button>
               ))}
             </div>
             <div className="relative w-full sm:w-72">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute start-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search by invoice, customer, SKU..."
+                placeholder={L.search_placeholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-background w-full"
+                className="ps-9 bg-background w-full"
               />
             </div>
           </div>
@@ -378,29 +609,29 @@ export default function InvoicesPage() {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center p-12 text-muted-foreground gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm">Loading live database invoices...</p>
+              <p className="text-sm">{L.loading}</p>
             </div>
           ) : filteredOrders.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">
               <Package className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
-              <h3 className="font-semibold text-foreground">No invoices found</h3>
-              <p className="text-sm mt-1">Try adjusting your search criteria or create a new invoice.</p>
+              <h3 className="font-semibold text-foreground">{L.no_invoices}</h3>
+              <p className="text-sm mt-1">{L.no_invoices_sub}</p>
             </div>
           ) : (
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead>Invoice ID</TableHead>
-                  <TableHead>Name / Items</TableHead>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Units</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Add stock</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
+                  <TableHead>{L.col_id}</TableHead>
+                  <TableHead>{L.col_items}</TableHead>
+                  <TableHead>{L.col_sku}</TableHead>
+                  <TableHead>{L.col_units}</TableHead>
+                  <TableHead>{L.col_stock}</TableHead>
+                  <TableHead>{L.col_date}</TableHead>
+                  <TableHead>{L.col_customer}</TableHead>
+                  <TableHead>{L.col_amount}</TableHead>
+                  <TableHead>{L.col_status}</TableHead>
+                  <TableHead>{L.col_add_stock}</TableHead>
+                  <TableHead className="text-end">{L.col_action}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -419,7 +650,7 @@ export default function InvoicesPage() {
 
                   return (
                     <TableRow key={order.id} className="hover:bg-muted/30">
-                      <TableCell className="font-mono font-medium text-xs text-primary">
+                      <TableCell dir="ltr" className="font-mono font-medium text-xs text-primary">
                         {invoiceCode}
                       </TableCell>
                       <TableCell className="font-medium text-sm">
@@ -427,11 +658,11 @@ export default function InvoicesPage() {
                           {primaryProduct?.name || order.note || "Standard Order"}
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">
+                      <TableCell dir="ltr" className="font-mono text-xs text-muted-foreground">
                         {primaryProduct?.sku || `SKU-${order.id.slice(0, 5).toUpperCase()}`}
                       </TableCell>
-                      <TableCell className="font-mono text-sm">{itemsCount}</TableCell>
-                      <TableCell className="font-mono text-sm">
+                      <TableCell dir="ltr" className="font-mono text-sm">{itemsCount}</TableCell>
+                      <TableCell dir="ltr" className="font-mono text-sm">
                         {typeof stockCount === "number" ? (
                           <Badge variant="outline" className={stockCount < 5 ? "text-rose-600 border-rose-200" : "text-foreground"}>
                             {stockCount}
@@ -440,16 +671,16 @@ export default function InvoicesPage() {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">{formattedDate}</TableCell>
+                      <TableCell dir="ltr" className="text-muted-foreground text-xs">{formattedDate}</TableCell>
                       <TableCell>
                         <div className="text-sm font-medium">{customerDisplay}</div>
                         {order.customerEmail && (
-                          <div className="text-xs text-muted-foreground truncate max-w-[140px]">
+                          <div dir="ltr" className="text-xs text-muted-foreground truncate max-w-[150px]">
                             {order.customerEmail}
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="font-semibold text-sm font-mono text-foreground">
+                      <TableCell dir="ltr" className="font-semibold text-sm font-mono text-foreground">
                         ${Number(order.total || 0).toFixed(2)}
                       </TableCell>
                       <TableCell>{renderStatusBadge(order.status)}</TableCell>
@@ -479,20 +710,20 @@ export default function InvoicesPage() {
                               {isUpdatingStock === productId ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />
                               ) : (
-                                "Add"
+                                L.add_btn
                               )}
                             </Button>
                           </div>
                         ) : (
-                          <span className="text-xs text-muted-foreground italic">No linked item</span>
+                          <span className="text-xs text-muted-foreground italic">{L.no_linked_item}</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-end">
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
-                            title="View Invoice"
+                            title={L.preview_invoice}
                             className="text-muted-foreground hover:text-primary"
                             onClick={() => {
                               setSelectedInvoice(order)
@@ -504,12 +735,9 @@ export default function InvoicesPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            title="Print / Download"
+                            title={L.print_download}
                             className="text-muted-foreground hover:text-foreground"
-                            onClick={() => {
-                              setSelectedInvoice(order)
-                              setIsInvoiceModalOpen(true)
-                            }}
+                            onClick={() => handleTriggerPrint(order)}
                           >
                             <Download className="h-4 w-4" />
                           </Button>
@@ -524,133 +752,254 @@ export default function InvoicesPage() {
         </CardContent>
       </Card>
 
-      {/* Invoice Details & Print Modal */}
+      {/* ====================================================================
+          نافذة معاينة وطباعة الفاتورة المرنة (Responsive Invoice Preview Modal)
+          ==================================================================== */}
       <Dialog open={isInvoiceModalOpen} onOpenChange={setIsInvoiceModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          dir={direction}
+          showCloseButton={false}
+          className="invoice-preview-modal max-w-4xl w-[94vw] max-h-[90vh] overflow-y-auto overflow-x-hidden p-0 gap-0 rounded-2xl border shadow-2xl"
+        >
           {selectedInvoice && (
-            <div className="space-y-6 pt-2">
-              <div className="flex justify-between items-start border-b pb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-6 w-6 text-primary" />
-                    <h2 className="text-xl font-bold">INVOICE</h2>
+            <div className="flex flex-col w-full min-w-0">
+              {/* شريط علوي لأزرار التحكم بالمعاينة والطباعة (يختفي تلقائياً عند الطباعة) */}
+              <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 bg-muted/80 backdrop-blur-md px-6 py-3.5 border-b print:hidden no-print">
+                <div className="flex items-center gap-2.5">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <DialogTitle className="text-base font-bold text-foreground">
+                    {L.preview_invoice} — <span dir="ltr" className="font-mono text-primary">INV-{selectedInvoice.orderNumber}</span>
+                  </DialogTitle>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleTriggerPrint()}
+                    className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
+                  >
+                    <Printer className="h-4 w-4" />
+                    <span>{L.print_pdf_btn}</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsInvoiceModalOpen(false)}
+                    className="gap-1.5"
+                  >
+                    <X className="h-4 w-4" />
+                    <span>{L.close}</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* منطقة الفاتورة القابلة للطباعة بالكامل دون قص (#invoice-printable-area) */}
+              <div
+                id="invoice-printable-area"
+                className="p-6 sm:p-8 md:p-10 space-y-8 bg-white text-slate-900 w-full min-w-0"
+              >
+                {/* 1. ترويسة الفاتورة وشعار الشركة (Header Section) */}
+                <div className="invoice-header-section flex flex-col sm:flex-row justify-between items-start gap-6 border-b border-slate-200 pb-6">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-xl bg-rose-600 text-white flex items-center justify-center font-black text-xl shadow-xs">
+                        S
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
+                          Smomo Store Inc.
+                        </h2>
+                        <p dir="ltr" className="text-xs text-slate-500">
+                          contact@smomo.shop • www.smomo.shop
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm font-mono text-muted-foreground mt-1">
-                    INV-{selectedInvoice.orderNumber}
+
+                  <div className="sm:text-end space-y-1">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-rose-50 text-rose-700 font-bold text-sm border border-rose-200">
+                      <FileText className="h-4 w-4" />
+                      <span>{L.invoice_heading}</span>
+                    </div>
+                    <div className="pt-1 space-y-0.5 text-xs text-slate-600">
+                      <div>
+                        <span className="font-semibold text-slate-700">{L.col_id}: </span>
+                        <span dir="ltr" className="font-mono font-bold text-slate-900">
+                          INV-{selectedInvoice.orderNumber}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-semibold text-slate-700">{L.issue_date}: </span>
+                        <span dir="ltr" className="font-mono">
+                          {new Date(selectedInvoice.createdAt).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. بيانات العميل وحالة الدفع (Billing & Status Section) */}
+                <div className="invoice-billing-section grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-5 rounded-xl border border-slate-200/80">
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                      {L.billed_to}
+                    </span>
+                    <div className="text-base font-bold text-slate-900">
+                      {selectedInvoice.customerName || selectedInvoice.user?.name || "Customer"}
+                    </div>
+                    <div dir="ltr" className="text-xs text-slate-600 font-mono inline-block">
+                      {selectedInvoice.customerEmail || selectedInvoice.user?.email || L.no_email}
+                    </div>
+                  </div>
+
+                  <div className="sm:text-end space-y-1.5 flex flex-col sm:items-end justify-center">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                      {L.payment_status}
+                    </span>
+                    <div>{renderStatusBadge(selectedInvoice.status)}</div>
+                    <div className="text-xs text-slate-500">
+                      <span>{L.order_ref}: </span>
+                      <span dir="ltr" className="font-mono font-semibold text-slate-700">
+                        #{selectedInvoice.orderNumber}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. جدول عناصر الفاتورة الكامل (Items Table) */}
+                <div className="border border-slate-200 rounded-xl overflow-x-auto print:overflow-visible">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100 border-b border-slate-200 text-slate-700">
+                        <th className="py-3 px-4 text-start font-bold w-12">{L.item_no}</th>
+                        <th className="py-3 px-4 text-start font-bold">{L.item_desc}</th>
+                        <th className="py-3 px-4 text-center font-bold w-24">{L.item_qty}</th>
+                        <th className="py-3 px-4 text-end font-bold w-32">{L.item_unit_price}</th>
+                        <th className="py-3 px-4 text-end font-bold w-36">{L.item_total}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {selectedInvoice.items && selectedInvoice.items.length > 0 ? (
+                        selectedInvoice.items.map((it, idx) => {
+                          const unitPrice = Number(it.price || 0)
+                          const qty = Number(it.quantity || 1)
+                          const lineTotal = unitPrice * qty
+                          return (
+                            <tr key={it.id || idx} className="invoice-avoid-break hover:bg-slate-50/60">
+                              <td dir="ltr" className="py-3.5 px-4 font-mono text-xs text-slate-500">
+                                {idx + 1}
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <div className="font-semibold text-slate-900 break-words">
+                                  {it.product?.name || `Item #${idx + 1}`}
+                                </div>
+                                {it.product?.sku && (
+                                  <div dir="ltr" className="text-xs font-mono text-slate-500 mt-0.5 inline-block">
+                                    SKU: {it.product.sku}
+                                  </div>
+                                )}
+                              </td>
+                              <td dir="ltr" className="py-3.5 px-4 text-center font-mono font-medium text-slate-800">
+                                {qty}
+                              </td>
+                              <td dir="ltr" className="py-3.5 px-4 text-end font-mono text-slate-700">
+                                ${unitPrice.toFixed(2)}
+                              </td>
+                              <td dir="ltr" className="py-3.5 px-4 text-end font-mono font-bold text-slate-900">
+                                ${lineTotal.toFixed(2)}
+                              </td>
+                            </tr>
+                          )
+                        })
+                      ) : (
+                        <tr className="invoice-avoid-break">
+                          <td dir="ltr" className="py-3.5 px-4 font-mono text-xs text-slate-500">
+                            1
+                          </td>
+                          <td className="py-3.5 px-4 font-semibold text-slate-900">
+                            {selectedInvoice.note || L.general_order}
+                          </td>
+                          <td dir="ltr" className="py-3.5 px-4 text-center font-mono font-medium text-slate-800">
+                            1
+                          </td>
+                          <td dir="ltr" className="py-3.5 px-4 text-end font-mono text-slate-700">
+                            ${Number(selectedInvoice.total || 0).toFixed(2)}
+                          </td>
+                          <td dir="ltr" className="py-3.5 px-4 text-end font-mono font-bold text-slate-900">
+                            ${Number(selectedInvoice.total || 0).toFixed(2)}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 4. ملخص المبالغ والإجمالي النهائي (Totals Breakdown Section) */}
+                <div className="invoice-totals-section flex flex-col sm:flex-row justify-between items-start gap-6 pt-2">
+                  <div className="max-w-sm space-y-1.5">
+                    {selectedInvoice.note && (
+                      <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600">
+                        <span className="font-bold text-slate-800 block mb-1">{L.notes_label}:</span>
+                        <p className="leading-relaxed">{selectedInvoice.note}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="w-full sm:w-80 bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-2.5 text-sm">
+                    <div className="flex justify-between items-center text-slate-600">
+                      <span>{L.subtotal}:</span>
+                      <span dir="ltr" className="font-mono font-medium text-slate-900">
+                        ${Number(selectedInvoice.subtotal || selectedInvoice.total || 0).toFixed(2)}
+                      </span>
+                    </div>
+
+                    {Number(selectedInvoice.discount || 0) > 0 && (
+                      <div className="flex justify-between items-center text-emerald-700">
+                        <span>{L.discount}:</span>
+                        <span dir="ltr" className="font-mono font-medium">
+                          -${Number(selectedInvoice.discount).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+
+                    {Number(selectedInvoice.shippingFee || 0) > 0 && (
+                      <div className="flex justify-between items-center text-slate-600">
+                        <span>{L.shipping}:</span>
+                        <span dir="ltr" className="font-mono font-medium text-slate-900">
+                          +${Number(selectedInvoice.shippingFee).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+
+                    {Number(selectedInvoice.tax || 0) > 0 && (
+                      <div className="flex justify-between items-center text-slate-600">
+                        <span>{L.tax}:</span>
+                        <span dir="ltr" className="font-mono font-medium text-slate-900">
+                          +${Number(selectedInvoice.tax).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="border-t border-slate-300 pt-3 flex justify-between items-center font-extrabold text-base text-slate-900">
+                      <span>{L.total_due}:</span>
+                      <span dir="ltr" className="font-mono text-lg text-rose-600">
+                        ${Number(selectedInvoice.total || 0).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. تذييل الفاتورة الرسمي (Official Footer Section) */}
+                <div className="invoice-footer-section border-t border-slate-200 pt-5 text-center text-xs text-slate-500 space-y-1">
+                  <p className="font-medium text-slate-700">{L.footer_thanks}</p>
+                  <p dir="ltr" className="font-mono text-[11px] text-slate-400">
+                    Smomo Store Inc. • Invoice ID: INV-{selectedInvoice.orderNumber}
                   </p>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-semibold">Smomo Store Inc.</div>
-                  <div className="text-xs text-muted-foreground">contact@smomo.shop</div>
-                  <div className="text-xs text-muted-foreground">
-                    Date: {new Date(selectedInvoice.createdAt).toLocaleDateString()}
-                  </div>
-                </div>
               </div>
-
-              {/* Bill To & Status */}
-              <div className="grid grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-lg">
-                <div>
-                  <span className="text-xs font-semibold uppercase text-muted-foreground block mb-1">
-                    Billed To:
-                  </span>
-                  <div className="font-semibold text-foreground">
-                    {selectedInvoice.customerName || selectedInvoice.user?.name || "Customer"}
-                  </div>
-                  <div className="text-muted-foreground text-xs mt-0.5">
-                    {selectedInvoice.customerEmail || "No email provided"}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-semibold uppercase text-muted-foreground block mb-1">
-                    Payment Status:
-                  </span>
-                  {renderStatusBadge(selectedInvoice.status)}
-                </div>
-              </div>
-
-              {/* Items Table */}
-              <div className="border rounded-md overflow-hidden">
-                <Table>
-                  <TableHeader className="bg-muted/40">
-                    <TableRow>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-center">Qty</TableHead>
-                      <TableHead className="text-right">Unit Price</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedInvoice.items && selectedInvoice.items.length > 0 ? (
-                      selectedInvoice.items.map((it, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell className="font-medium">
-                            {it.product?.name || `Item #${idx + 1}`}
-                            {it.product?.sku && (
-                              <span className="block text-xs font-mono text-muted-foreground">
-                                SKU: {it.product.sku}
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-center font-mono">{it.quantity}</TableCell>
-                          <TableCell className="text-right font-mono">${Number(it.price).toFixed(2)}</TableCell>
-                          <TableCell className="text-right font-mono font-semibold">
-                            ${(Number(it.price) * it.quantity).toFixed(2)}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell className="font-medium">
-                          {selectedInvoice.note || "General Store Order"}
-                        </TableCell>
-                        <TableCell className="text-center font-mono">1</TableCell>
-                        <TableCell className="text-right font-mono">
-                          ${Number(selectedInvoice.total).toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-semibold">
-                          ${Number(selectedInvoice.total).toFixed(2)}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Financial Breakdown */}
-              <div className="flex justify-end">
-                <div className="w-64 space-y-2 text-sm font-mono">
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Subtotal:</span>
-                    <span>${Number(selectedInvoice.subtotal || selectedInvoice.total).toFixed(2)}</span>
-                  </div>
-                  {Number(selectedInvoice.discount || 0) > 0 && (
-                    <div className="flex justify-between text-emerald-600">
-                      <span>Discount:</span>
-                      <span>-${Number(selectedInvoice.discount).toFixed(2)}</span>
-                    </div>
-                  )}
-                  {Number(selectedInvoice.tax || 0) > 0 && (
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Tax:</span>
-                      <span>+${Number(selectedInvoice.tax).toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="border-t pt-2 flex justify-between font-bold text-base text-foreground">
-                    <span>Total Due:</span>
-                    <span>${Number(selectedInvoice.total).toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <DialogFooter className="gap-2 sm:gap-0 pt-4 border-t">
-                <Button variant="outline" onClick={() => setIsInvoiceModalOpen(false)}>
-                  Close
-                </Button>
-                <Button onClick={() => window.print()} className="gap-2">
-                  <Printer className="h-4 w-4" /> Print / Save PDF
-                </Button>
-              </DialogFooter>
             </div>
           )}
         </DialogContent>
@@ -660,14 +1009,12 @@ export default function InvoicesPage() {
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Create New Invoice</DialogTitle>
-            <DialogDescription>
-              Generates a new billing record and stores it directly into the database.
-            </DialogDescription>
+            <DialogTitle>{L.create_modal_title}</DialogTitle>
+            <DialogDescription>{L.create_modal_desc}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateInvoice} className="space-y-4 pt-2">
             <div>
-              <label className="text-xs font-semibold text-foreground">Customer Name *</label>
+              <label className="text-xs font-semibold text-foreground">{L.customer_name_label}</label>
               <Input
                 required
                 placeholder="e.g. John Doe or Acme Corp"
@@ -678,8 +1025,9 @@ export default function InvoicesPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-foreground">Customer Email</label>
+              <label className="text-xs font-semibold text-foreground">{L.customer_email_label}</label>
               <Input
+                dir="ltr"
                 type="email"
                 placeholder="customer@example.com"
                 value={newCustomerEmail}
@@ -690,8 +1038,9 @@ export default function InvoicesPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-semibold text-foreground">Amount ($) *</label>
+                <label className="text-xs font-semibold text-foreground">{L.amount_label}</label>
                 <Input
+                  dir="ltr"
                   type="number"
                   step="0.01"
                   required
@@ -702,7 +1051,7 @@ export default function InvoicesPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-foreground">Status</label>
+                <label className="text-xs font-semibold text-foreground">{L.status_label}</label>
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value)}
@@ -718,7 +1067,7 @@ export default function InvoicesPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-foreground">Invoice Note / Item description</label>
+              <label className="text-xs font-semibold text-foreground">{L.note_label}</label>
               <Input
                 placeholder="e.g. Consulting services or custom batch order"
                 value={newNote}
@@ -729,11 +1078,11 @@ export default function InvoicesPage() {
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setIsCreateModalOpen(false)}>
-                Cancel
+                {L.cancel}
               </Button>
               <Button type="submit" disabled={isCreating} className="gap-2">
                 {isCreating && <Loader2 className="h-4 w-4 animate-spin" />}
-                Save Invoice
+                {L.save_invoice}
               </Button>
             </DialogFooter>
           </form>

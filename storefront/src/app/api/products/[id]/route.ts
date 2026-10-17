@@ -2,20 +2,70 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getStockStatus } from "@/app/api/inventory/route"
 
+function sanitizeProductParam(rawId: string | undefined): string | null {
+  if (!rawId || typeof rawId !== "string") return null
+  try {
+    const decoded = decodeURIComponent(rawId).trim()
+    if (!decoded || decoded.length > 128 || /[\0<>;"'`\\]/.test(decoded) || decoded.includes("..")) {
+      return null
+    }
+    return decoded
+  } catch {
+    return null
+  }
+}
+
 // GET /api/products/[id]
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
-    const product = await db.product.findUnique({
+    const { id: rawId } = await params
+    const id = sanitizeProductParam(rawId)
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: "Invalid product identifier" },
+        { status: 400 }
+      )
+    }
+
+    let product = await db.product.findUnique({
       where: { id },
       include: {
         category: true,
         reviews: true,
       },
     })
+
+    if (!product && id.includes("-")) {
+      const baseId = id.split("-")[0]?.trim()
+      if (baseId && baseId.length >= 10) {
+        product = await db.product.findUnique({
+          where: { id: baseId },
+          include: {
+            category: true,
+            reviews: true,
+          },
+        })
+      }
+    }
+
+    if (!product) {
+      product = await db.product.findFirst({
+        where: {
+          OR: [
+            { sku: id },
+            { name: id },
+            { name: id.replace(/-/g, " ").trim() },
+          ],
+        },
+        include: {
+          category: true,
+          reviews: true,
+        },
+      })
+    }
 
     if (!product) {
       return NextResponse.json(

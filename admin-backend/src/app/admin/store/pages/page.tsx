@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useLocaleStore } from "@/store/useLocaleStore"
 import {
   Dialog,
   DialogContent,
@@ -21,7 +22,6 @@ import {
   Trash2,
   Edit2,
   ExternalLink,
-  Check,
   Search,
   RefreshCw,
   Loader2,
@@ -38,6 +38,7 @@ interface StorePage {
 }
 
 export default function PagesManagerPage() {
+  const { t } = useLocaleStore()
   const [pages, setPages] = useState<StorePage[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -58,7 +59,7 @@ export default function PagesManagerPage() {
   const fetchPages = useCallback(async () => {
     try {
       setIsLoading(true)
-      const res = await fetch("/api/store/pages")
+      const res = await fetch("/api/store/pages", { cache: "no-store" })
       const data = await res.json()
       if (data.success && Array.isArray(data.pages)) {
         setPages(data.pages)
@@ -171,20 +172,23 @@ export default function PagesManagerPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <FileText className="h-6 w-6 text-primary" />
-            Static Pages & Legal Content
+            <span>{t("pages_admin.title", "Static Pages & Legal Content")}</span>
           </h1>
-          <p className="text-muted-foreground text-sm">
-            Live database management for store information pages, privacy policy, and terms of service.
+          <p className="text-muted-foreground text-sm mt-1">
+            {t(
+              "pages_admin.subtitle",
+              "Live database management for store information pages, privacy policy, and terms of service."
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => fetchPages()} disabled={isLoading} className="gap-2">
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-            Refresh
+            <span>{t("menus_admin.refresh", "Refresh")}</span>
           </Button>
           <Button onClick={handleOpenCreate} className="gap-2 bg-primary">
             <Plus className="h-4 w-4" />
-            Add New Page
+            <span>{t("pages_admin.add_btn", "Add New Page")}</span>
           </Button>
         </div>
       </div>
@@ -194,19 +198,21 @@ export default function PagesManagerPage() {
         <CardHeader className="py-4 bg-muted/20 border-b">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <CardTitle className="text-base font-semibold">Store Pages Library</CardTitle>
+              <CardTitle className="text-base font-semibold">
+                {t("pages_admin.library_title", "Store Pages Library")}
+              </CardTitle>
               <CardDescription className="text-xs">
-                {pages.length} total pages persisted in system storage
+                {t("pages_admin.library_subtitle", "Total pages persisted in system storage:")} {pages.length}
               </CardDescription>
             </div>
             <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute start-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search pages by title or slug..."
+                placeholder={t("pages_admin.search_placeholder", "Search pages by title or slug...")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-background w-full"
+                className="ps-9 bg-background w-full"
               />
             </div>
           </div>
@@ -215,7 +221,7 @@ export default function PagesManagerPage() {
           {isLoading ? (
             <div className="p-12 flex flex-col justify-center items-center gap-3 text-muted-foreground">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm">Loading store pages...</p>
+              <p className="text-sm">{t("common.loading", "Loading store pages...")}</p>
             </div>
           ) : filteredPages.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">
@@ -226,11 +232,11 @@ export default function PagesManagerPage() {
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead>Page Title</TableHead>
-                  <TableHead>Slug / URL Path</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Modified</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t("pages_admin.col_title", "Page Title")}</TableHead>
+                  <TableHead>{t("pages_admin.col_slug", "Slug / URL Path")}</TableHead>
+                  <TableHead>{t("pages_admin.col_status", "Status")}</TableHead>
+                  <TableHead>{t("pages_admin.col_modified", "Last Modified")}</TableHead>
+                  <TableHead className="text-end">{t("pages_admin.col_actions", "Actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -239,28 +245,28 @@ export default function PagesManagerPage() {
                     <TableCell className="font-medium text-foreground">
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                        {page.title}
+                        <span>{page.title}</span>
                       </div>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">
-                      /store/{page.slug}
+                      <span dir="ltr" className="inline-block">/store/{page.slug}</span>
                     </TableCell>
                     <TableCell>
                       {page.status === "published" ? (
                         <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                          Published
+                          {t("pages_admin.published", "Published")}
                         </Badge>
                       ) : (
                         <Badge variant="secondary" className="bg-muted text-muted-foreground">
-                          Draft
+                          {t("pages_admin.draft", "Draft")}
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{page.lastUpdated}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell dir="ltr" className="text-xs text-muted-foreground">{page.lastUpdated}</TableCell>
+                    <TableCell className="text-end">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={`http://localhost:3001/store/${page.slug}`} target="_blank">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" title="Preview Page">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" title={t("common.view", "Preview Page")}>
                             <ExternalLink className="h-4 w-4" />
                           </Button>
                         </Link>
@@ -268,7 +274,7 @@ export default function PagesManagerPage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                          title="Edit Page"
+                          title={t("common.edit", "Edit Page")}
                           onClick={() => handleOpenEdit(page)}
                         >
                           <Edit2 className="h-4 w-4" />
@@ -277,7 +283,7 @@ export default function PagesManagerPage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          title="Delete Page"
+                          title={t("common.delete", "Delete Page")}
                           onClick={() => setPageToDelete(page)}
                         >
                           <Trash2 className="h-4 w-4" />

@@ -1,106 +1,183 @@
 import Link from "next/link"
-import { PrismaClient } from "@prisma/client"
+import { prisma } from "@/lib/db"
+import { getStoreHeroSection } from "@/lib/store-storage"
 import { Truck, ShieldCheck, Headset, ArrowRight, Star, ShoppingBag } from "lucide-react"
 
-const prisma = new PrismaClient()
+// ضمان جلب أحدث المنتجات وقسم الهيرو مباشرة من قاعدة البيانات المشتركة مع لوحة التحكم
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 export default async function StorefrontHomePage() {
-  const featuredProducts = await prisma.product.findMany({
-    take: 4,
-    orderBy: { createdAt: 'desc' }
-  })
+  const [hero, featuredProducts, mostViewedProducts] = await Promise.all([
+    getStoreHeroSection(),
+    prisma.product.findMany({
+      take: 4,
+      orderBy: { createdAt: 'desc' }
+    }),
+    prisma.product.findMany({
+      take: 4,
+      orderBy: { views: 'desc' }
+    }),
+  ])
 
-  const mostViewedProducts = await prisma.product.findMany({
-    take: 4,
-    orderBy: { views: 'desc' }
-  })
+  const accentColor = hero.accentColor || "#ff2d55"
+  const bgColor = hero.backgroundColor || "#ffffff"
+  const textColor = hero.textColor || "#111827"
 
   return (
     <div className="flex flex-col min-h-screen bg-[#fafafa] font-sans selection:bg-[#ff2d55] selection:text-white">
-      {/* Dynamic Hero Section */}
-      <section className="relative overflow-hidden bg-white">
-        {/* Animated Background Gradients */}
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-pink-200/30 blur-[120px] animate-pulse pointer-events-none" style={{ animationDuration: '4s' }} />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-[#ff2d55]/5 blur-[100px] animate-pulse pointer-events-none" style={{ animationDuration: '5s' }} />
-        
-        <div className="container mx-auto px-4 max-w-6xl py-12 md:py-20 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            
-            {/* Left Content */}
-            <div className="max-w-xl animate-in fade-in slide-in-from-bottom-8 duration-1000">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50 border border-rose-100 text-[#ff2d55] text-xs font-semibold mb-5 shadow-sm">
-                <Star className="w-3 h-3 fill-[#ff2d55]" />
-                <span>Premium E-Commerce Experience</span>
-              </div>
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight leading-tight mb-5">
-                Elevate Your <br className="hidden md:block"/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ff2d55] to-rose-400">
-                  Lifestyle.
-                </span>
-              </h1>
-              <p className="text-base md:text-lg text-gray-500 mb-8 leading-relaxed">
-                Discover our curated collection of premium products. Experience fast shipping, secure payments, and unparalleled quality.
-              </p>
-              <div className="flex flex-wrap items-center gap-3">
-                <Link 
-                  href="/store/products" 
-                  className="group relative inline-flex items-center justify-center bg-[#ff2d55] text-white px-6 py-3 rounded-full font-medium text-sm overflow-hidden transition-transform hover:scale-105 shadow-[0_4px_15px_rgb(255,45,85,0.3)]"
-                >
-                  <span className="relative z-10 flex items-center gap-2">
-                    Shop Collection <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-rose-500 to-[#ff2d55] opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Link>
-                <Link 
-                  href="/store/categories" 
-                  className="inline-flex items-center justify-center bg-white text-gray-700 border border-gray-200 px-6 py-3 rounded-full font-medium text-sm hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
-                >
-                  Browse Categories
-                </Link>
-              </div>
+      {/* Dynamic Hero Section (Controlled from Admin Dashboard /admin/store/hero) */}
+      {hero.isActive !== false && (
+        <section
+          className="relative overflow-hidden transition-colors duration-300"
+          style={{ backgroundColor: bgColor }}
+        >
+          {/* Animated Background Gradients */}
+          <div
+            className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[120px] animate-pulse pointer-events-none"
+            style={{ backgroundColor: `${accentColor}26`, animationDuration: '4s' }}
+          />
+          <div
+            className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full blur-[100px] animate-pulse pointer-events-none"
+            style={{ backgroundColor: `${accentColor}12`, animationDuration: '5s' }}
+          />
+          
+          <div className="container mx-auto px-4 max-w-6xl py-12 md:py-20 relative z-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
               
-              {/* Trust Indicators */}
-              <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-gray-500 font-medium">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" /> In Stock
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]" /> 24h Delivery
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.4)]" /> Secure Checkout
-                </div>
-              </div>
-            </div>
-
-            {/* Right Image Container */}
-            <div className="relative w-full aspect-square md:aspect-auto md:h-[450px] animate-in fade-in slide-in-from-right-8 duration-1000 delay-200">
-              <div className="absolute inset-0 bg-gradient-to-tr from-rose-100 to-pink-50 rounded-[2rem] transform rotate-2 scale-105 -z-10 shadow-inner" />
-              <img 
-                src="/hero_products.png" 
-                alt="Premium Products" 
-                className="w-full h-full object-cover rounded-[2rem] shadow-xl ring-1 ring-gray-900/5"
-              />
-              
-              {/* Floating Badge */}
-              <div className="absolute -bottom-4 -left-4 md:bottom-8 md:-left-6 bg-white/95 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-gray-100 animate-bounce" style={{ animationDuration: '3s' }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-rose-50 rounded-full flex items-center justify-center text-[#ff2d55] font-bold text-sm border border-rose-100">
-                    10k+
+              {/* Left Content */}
+              <div className="max-w-xl animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                {hero.badgeText && (
+                  <div
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-5 shadow-sm border"
+                    style={{
+                      backgroundColor: `${accentColor}12`,
+                      borderColor: `${accentColor}30`,
+                      color: accentColor,
+                    }}
+                  >
+                    <Star className="w-3 h-3" style={{ fill: accentColor, color: accentColor }} />
+                    <span>{hero.badgeText}</span>
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-800 mb-0.5">Happy Customers</p>
-                    <div className="flex text-yellow-400">
-                      <Star className="fill-current w-3 h-3" /><Star className="fill-current w-3 h-3" /><Star className="fill-current w-3 h-3" /><Star className="fill-current w-3 h-3" /><Star className="fill-current w-3 h-3" />
+                )}
+
+                <h1
+                  className="text-4xl md:text-5xl font-bold tracking-tight leading-tight mb-5"
+                  style={{ color: textColor }}
+                >
+                  {hero.title}{" "}
+                  {hero.highlightText && (
+                    <>
+                      <br className="hidden md:block" />
+                      <span
+                        className="text-transparent bg-clip-text"
+                        style={{
+                          backgroundImage: `linear-gradient(to right, ${accentColor}, #fb7185)`,
+                        }}
+                      >
+                        {hero.highlightText}
+                      </span>
+                    </>
+                  )}
+                </h1>
+
+                <p className="text-base md:text-lg text-gray-500 mb-8 leading-relaxed">
+                  {hero.subtitle}
+                </p>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <Link 
+                    href={hero.buttonUrl || "/store/products"} 
+                    className="group relative inline-flex items-center justify-center text-white px-6 py-3 rounded-full font-medium text-sm overflow-hidden transition-transform hover:scale-105"
+                    style={{
+                      backgroundColor: accentColor,
+                      boxShadow: `0 4px 15px ${accentColor}4D`,
+                    }}
+                  >
+                    <span className="relative z-10 flex items-center gap-2">
+                      {hero.buttonText || "Shop Collection"}{" "}
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                  </Link>
+
+                  {hero.secondaryButtonText && (
+                    <Link 
+                      href={hero.secondaryButtonUrl || "/store/categories"} 
+                      className="inline-flex items-center justify-center bg-white text-gray-700 border border-gray-200 px-6 py-3 rounded-full font-medium text-sm hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                    >
+                      {hero.secondaryButtonText}
+                    </Link>
+                  )}
+                </div>
+                
+                {/* Trust Indicators */}
+                {hero.showTrustBadges !== false && (
+                  <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-gray-500 font-medium">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" /> In Stock
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]" /> 24h Delivery
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.4)]" /> Secure Checkout
                     </div>
                   </div>
-                </div>
+                )}
               </div>
-            </div>
 
+              {/* Right Image Container */}
+              <div
+                suppressHydrationWarning
+                className="relative w-full aspect-square md:aspect-auto md:h-[450px] animate-in fade-in slide-in-from-right-8 duration-1000 delay-200"
+              >
+                <div
+                  className="absolute inset-0 rounded-[2rem] transform rotate-2 scale-105 -z-10 shadow-inner"
+                  style={{
+                    backgroundImage: `linear-gradient(to top right, ${accentColor}22, ${accentColor}0D)`,
+                  }}
+                />
+                <div
+                  role="img"
+                  aria-label={hero.title || "Premium Products"}
+                  suppressHydrationWarning
+                  className="w-full h-full bg-cover bg-center rounded-[2rem] shadow-xl ring-1 ring-gray-900/5"
+                  style={{
+                    backgroundImage: `url("${hero.imagePath || "/hero_products.png"}")`,
+                  }}
+                />
+                
+                {/* Floating Badge */}
+                {hero.showFloatingBadge !== false && (
+                  <div className="absolute -bottom-4 -left-4 md:bottom-8 md:-left-6 bg-white/95 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-gray-100 animate-bounce" style={{ animationDuration: '3s' }}>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border"
+                        style={{
+                          backgroundColor: `${accentColor}12`,
+                          borderColor: `${accentColor}28`,
+                          color: accentColor,
+                        }}
+                      >
+                        {hero.floatingBadgeValue || "10k+"}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-gray-800 mb-0.5">
+                          {hero.floatingBadgeLabel || "Happy Customers"}
+                        </p>
+                        <div className="flex text-yellow-400">
+                          <Star className="fill-current w-3 h-3" /><Star className="fill-current w-3 h-3" /><Star className="fill-current w-3 h-3" /><Star className="fill-current w-3 h-3" /><Star className="fill-current w-3 h-3" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Featured Products */}
       <section className="py-20 bg-[#fafafa]">
@@ -123,17 +200,21 @@ export default async function StorefrontHomePage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {featuredProducts.map((product) => (
-                <Link href={`/store/products/${product.id}`} key={product.id} className="group flex flex-col bg-white rounded-2xl overflow-hidden shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] hover:shadow-xl transition-all duration-300 border border-gray-100 hover:-translate-y-1 relative">
+                <Link href={`/store/products/${encodeURIComponent(product.id)}`} key={product.id} className="group flex flex-col bg-white rounded-2xl overflow-hidden shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] hover:shadow-xl transition-all duration-300 border border-gray-100 hover:-translate-y-1 relative">
                   {/* Badge */}
                   <div className="absolute top-3 left-3 z-10 bg-white/95 backdrop-blur-sm px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-semibold text-gray-800 shadow-sm border border-gray-100">
                     New
                   </div>
                   
-                  <div className="relative aspect-[4/5] bg-gray-50 overflow-hidden">
-                    <img 
-                      src={product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`} 
-                      alt={product.name}
-                      className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                  <div suppressHydrationWarning className="relative aspect-[4/5] bg-gray-50 overflow-hidden">
+                    <div
+                      role="img"
+                      aria-label={product.name}
+                      suppressHydrationWarning
+                      className="bg-cover bg-center w-full h-full group-hover:scale-105 transition-transform duration-500"
+                      style={{
+                        backgroundImage: `url("${product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`}")`,
+                      }}
                     />
                     {/* Hover Overlay */}
                     <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[1px]">
@@ -148,9 +229,9 @@ export default async function StorefrontHomePage() {
                     <p className="text-gray-500 text-xs mb-4 line-clamp-2 leading-relaxed font-light">Experience the ultimate combination of form and function with this premium product.</p>
                     <div className="mt-auto flex items-center justify-between">
                       <span className="text-lg font-bold text-gray-900">${product.price.toFixed(2)}</span>
-                      <button className="w-8 h-8 rounded-full bg-gray-50 text-gray-700 flex items-center justify-center group-hover:bg-[#ff2d55] group-hover:text-white transition-all shadow-sm border border-gray-100 group-hover:border-transparent">
+                      <span aria-hidden="true" className="w-8 h-8 rounded-full bg-gray-50 text-gray-700 flex items-center justify-center group-hover:bg-[#ff2d55] group-hover:text-white transition-all shadow-sm border border-gray-100 group-hover:border-transparent">
                         <ArrowRight className="w-4 h-4" />
-                      </button>
+                      </span>
                     </div>
                   </div>
                 </Link>
@@ -181,17 +262,21 @@ export default async function StorefrontHomePage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {mostViewedProducts.map((product) => (
-                <Link href={`/store/products/${product.id}`} key={product.id} className="group flex flex-col bg-gray-50 rounded-2xl overflow-hidden shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] hover:shadow-xl transition-all duration-300 border border-gray-100 hover:-translate-y-1 relative">
+                <Link href={`/store/products/${encodeURIComponent(product.id)}`} key={product.id} className="group flex flex-col bg-gray-50 rounded-2xl overflow-hidden shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] hover:shadow-xl transition-all duration-300 border border-gray-100 hover:-translate-y-1 relative">
                   {/* Badge */}
                   <div className="absolute top-3 left-3 z-10 bg-[#ff2d55]/90 backdrop-blur-sm px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-semibold text-white shadow-sm border border-[#ff2d55]">
                     Hot
                   </div>
                   
-                  <div className="relative aspect-[4/5] bg-white overflow-hidden">
-                    <img 
-                      src={product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`} 
-                      alt={product.name}
-                      className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                  <div suppressHydrationWarning className="relative aspect-[4/5] bg-white overflow-hidden">
+                    <div
+                      role="img"
+                      aria-label={product.name}
+                      suppressHydrationWarning
+                      className="bg-cover bg-center w-full h-full group-hover:scale-105 transition-transform duration-500"
+                      style={{
+                        backgroundImage: `url("${product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`}")`,
+                      }}
                     />
                     {/* Hover Overlay */}
                     <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[1px]">
@@ -206,9 +291,9 @@ export default async function StorefrontHomePage() {
                     <p className="text-gray-500 text-xs mb-4 line-clamp-2 leading-relaxed font-light">Explore this highly sought-after product.</p>
                     <div className="mt-auto flex items-center justify-between">
                       <span className="text-lg font-bold text-gray-900">${product.price.toFixed(2)}</span>
-                      <button className="w-8 h-8 rounded-full bg-white text-gray-700 flex items-center justify-center group-hover:bg-[#ff2d55] group-hover:text-white transition-all shadow-sm border border-gray-200 group-hover:border-transparent">
+                      <span aria-hidden="true" className="w-8 h-8 rounded-full bg-white text-gray-700 flex items-center justify-center group-hover:bg-[#ff2d55] group-hover:text-white transition-all shadow-sm border border-gray-200 group-hover:border-transparent">
                         <ArrowRight className="w-4 h-4" />
-                      </button>
+                      </span>
                     </div>
                   </div>
                 </Link>

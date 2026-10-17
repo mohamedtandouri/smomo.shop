@@ -63,7 +63,7 @@ export default function CartPage() {
                 <li key={item.id} className="p-4 sm:p-6 flex flex-col md:grid md:grid-cols-12 gap-4 items-center">
                   {/* Product Info */}
                   <div className="col-span-6 flex items-center gap-4 w-full">
-                    <Link href={`/store/products`} className="shrink-0">
+                    <Link href={`/store/products/${encodeURIComponent(item.productId || item.id.split("-")[0])}`} className="shrink-0">
                       <div className="w-20 h-20 bg-gray-100 rounded-md overflow-hidden border border-gray-200">
                         <img 
                           src={item.image || `https://picsum.photos/seed/${item.id}/200/200`} 
@@ -73,7 +73,7 @@ export default function CartPage() {
                       </div>
                     </Link>
                     <div className="flex-1 min-w-0">
-                      <Link href={`/store/products`} className="font-semibold text-gray-900 hover:text-[#ff2d55] truncate block">
+                      <Link href={`/store/products/${encodeURIComponent(item.productId || item.id.split("-")[0])}`} className="font-semibold text-gray-900 hover:text-[#ff2d55] truncate block">
                         {item.title}
                       </Link>
                       <button 

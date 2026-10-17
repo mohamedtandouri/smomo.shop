@@ -260,7 +260,12 @@ export function ProductView({ product, relatedProducts, initialReviews }: Produc
                   }`}
                   title={img.label}
                 >
-                  <img src={img.url} alt="" className="w-full h-full object-cover rounded-lg" />
+                  <div
+                    role="img"
+                    aria-label={img.label}
+                    className="w-full h-full bg-cover bg-center rounded-lg"
+                    style={{ backgroundImage: `url("${img.url}")` }}
+                  />
                 </button>
               )
             })}
@@ -273,6 +278,7 @@ export function ProductView({ product, relatedProducts, initialReviews }: Produc
               onMouseMove={handleMouseMove}
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
+              suppressHydrationWarning
               className="relative w-full max-w-[460px] aspect-square rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex items-center justify-center cursor-crosshair group"
             >
               {/* شارة توضيح الزووم */}
@@ -288,15 +294,17 @@ export function ProductView({ product, relatedProducts, initialReviews }: Produc
               )}
 
               {/* الصورة مع تأثير الزووم المكبر عند موضع الماوس */}
-              <img
-                src={activeImage}
-                alt={product.name}
+              <div
+                role="img"
+                aria-label={product.name}
+                suppressHydrationWarning
                 style={{
+                  backgroundImage: `url("${activeImage}")`,
                   transform: isHovering ? "scale(2.2)" : "scale(1)",
                   transformOrigin: `${zoomCoords.x}% ${zoomCoords.y}%`,
                   transition: isHovering ? "none" : "transform 0.3s cubic-bezier(0.2, 0, 0.2, 1)",
                 }}
-                className="w-full h-full object-cover select-none pointer-events-none"
+                className="w-full h-full bg-cover bg-center select-none pointer-events-none"
               />
             </div>
           </div>
@@ -836,10 +844,14 @@ export function ProductView({ product, relatedProducts, initialReviews }: Produc
                 className="group bg-white rounded-xl border border-gray-200/80 p-3.5 flex flex-col justify-between hover:shadow-md hover:border-gray-300 transition-all"
               >
                 <Link href={`/store/products/${rel.id}`} className="block overflow-hidden rounded-lg aspect-square mb-3 bg-gray-50">
-                  <img
-                    src={rel.imageUrl || `https://picsum.photos/seed/${rel.id}/400/400`}
-                    alt={rel.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  <div
+                    role="img"
+                    aria-label={rel.name}
+                    suppressHydrationWarning
+                    className="w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-300"
+                    style={{
+                      backgroundImage: `url("${rel.imageUrl || `https://picsum.photos/seed/${rel.id}/400/400`}")`,
+                    }}
                   />
                 </Link>
 

@@ -4,23 +4,27 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { ShoppingCart, Menu, X, Search, User } from "lucide-react"
 import { useCartStore } from "@/store/useCartStore"
-import { useLocaleStore } from "@/store/useLocaleStore"
+import { useLocaleStore, translateMenuLabel } from "@/store/useLocaleStore"
 import { LanguageSelector } from "@/components/layout/LanguageSelector"
 import { CurrencySelector } from "@/components/layout/CurrencySelector"
 import { usePathname } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import { UserProfileDropdown } from "./UserProfileDropdown"
+import { StoreMenuItem } from "@/lib/store-storage"
 
 interface StorefrontNavbarProps {
   storeName?: string
   logoUrl?: string | null
   primaryColor?: string
+  headerLinks?: StoreMenuItem[]
+  defaultLocale?: string
 }
 
 export function StorefrontNavbar({ 
   storeName = "Smomo", 
   logoUrl, 
-  primaryColor = "#ff2d55" 
+  primaryColor = "#ff2d55",
+  headerLinks,
 }: StorefrontNavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
@@ -38,14 +42,26 @@ export function StorefrontNavbar({
       setIsScrolled(window.scrollY > 20)
     }
     window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('scroll', handleScroll)
+    }
   }, [])
 
-  const navLinks = [
-    { name: t("store.home", "Home"), href: '/store' },
-    { name: t("store.products", "Products"), href: '/store/products' },
-    { name: t("store.categories", "Categories"), href: '/store/categories' },
-  ]
+  // استخدام روابط الهيدر الديناميكية القادمة من لوحة التحكم مع ترجمة التسميات تلقائياً
+  const navLinks = (headerLinks && headerLinks.length > 0)
+    ? [...headerLinks]
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .map((item) => ({
+          id: item.id,
+          name: translateMenuLabel(item.label, t),
+          href: item.url.startsWith("/") || item.url.startsWith("http") ? item.url : `/${item.url}`,
+        }))
+    : [
+        { id: "home", name: t("store.home", "Home"), href: "/store" },
+        { id: "products", name: t("store.products", "Products"), href: "/store/products" },
+        { id: "categories", name: t("store.categories", "Categories"), href: "/store/categories" },
+      ]
 
   return (
     <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${isScrolled ? 'bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm py-0' : 'bg-white border-b border-gray-100 py-0'}`}>
@@ -72,7 +88,7 @@ export function StorefrontNavbar({
             const isActive = pathname === link.href || (link.href !== '/store' && pathname?.startsWith(link.href))
             return (
               <Link 
-                key={link.href} 
+                key={link.id || link.href} 
                 href={link.href} 
                 style={isActive ? { color: primaryColor } : {}}
                 className={`text-sm font-medium transition-all hover:-translate-y-0.5 ${isActive ? 'font-semibold' : 'text-gray-500 hover:text-gray-900'}`}

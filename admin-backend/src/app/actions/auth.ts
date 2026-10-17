@@ -322,16 +322,61 @@ export async function registerAdminAction(formData: FormData) {
 }
 
 /**
+ * مخطط التحقق Zod لتحديث الملف الشخصي للمستخدم
+ */
+const UpdateProfileActionSchema = z.object({
+  name: z.string().trim().min(2, "الاسم الكامل يجب ألا يقل عن حرفين").max(80, "الاسم طويل جداً"),
+  email: z.string().trim().toLowerCase().email("صيغة البريد الإلكتروني غير صحيحة").max(100),
+  phone: z.string().trim().max(30, "رقم الهاتف غير صالح").optional().nullable(),
+  currentPassword: z.string().optional(),
+  newPassword: z.string().optional(),
+  confirmPassword: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.newPassword && data.newPassword.trim().length > 0) {
+    if (data.newPassword.length < 8) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف",
+        path: ["newPassword"],
+      })
+    }
+    if (data.confirmPassword !== undefined && data.newPassword !== data.confirmPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "تأكيد كلمة المرور غير مطابق لكلمة المرور الجديدة",
+        path: ["confirmPassword"],
+      })
+    }
+  }
+})
+
+/**
  * جلب بيانات الملف الشخصي للمدير مع سجلات الأمان الحديثة
  */
-export async function getAdminProfileData(email: string) {
+export async function getAdminProfileData(identifier?: string) {
   try {
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: {
-        profile: true,
-      },
-    })
+    let user = null
+
+    if (identifier) {
+      // محاولة البحث عبر المعرف أولاً ثم عبر البريد الإلكتروني
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [{ id: identifier }, { email: identifier.toLowerCase() }],
+        },
+        include: {
+          profile: true,
+        },
+      })
+    }
+
+    // في حال تغير البريد في الجلسة أو عدم العثور عليه، الجلب الافتراضي لأول حساب ADMIN
+    if (!user) {
+      user = await prisma.user.findFirst({
+        where: { role: "ADMIN" },
+        orderBy: { createdAt: "asc" },
+        include: { profile: true },
+      })
+    }
 
     if (!user) return null
 
@@ -367,52 +412,93 @@ export async function getAdminProfileData(email: string) {
 }
 
 /**
- * تحديث بيانات الملف الشخصي للمسؤول
+ * تحديث بيانات الملف الشخصي للمسؤول (الاسم، البريد الإلكتروني، الهاتف، الصورة، وكلمة المرور)
  */
 export async function updateAdminProfileAction(formData: FormData) {
   const reqHeaders = await headers()
   const ip = getClientIp(reqHeaders)
 
   const session = await getServerSession(authOptions)
-  if (!session || !session.user || (session.user as any).role !== "ADMIN") {
-    return { success: false, error: "غير مصرح بالوصول: يرجى تسجيل الدخول كمسؤول." }
+  const formUserId = (formData.get("userId") as string)?.trim()
+  const targetUserId = session?.user?.id || formUserId
+
+  if (!targetUserId) {
+    return { success: false, error: "غير مصرح بالوصول: يرجى تسجيل الدخول أولاً." }
   }
 
-  const userId = session.user.id
-  const name = (formData.get("name") as string)?.trim()
-  const phone = (formData.get("phone") as string)?.trim() || null
-  const currentPassword = formData.get("currentPassword") as string
-  const newPassword = formData.get("newPassword") as string
-
-  if (!name) {
-    return { success: false, error: "الاسم مطلوب." }
+  const rawData = {
+    name: (formData.get("name") as string) || "",
+    email: (formData.get("email") as string) || "",
+    phone: (formData.get("phone") as string) || null,
+    currentPassword: (formData.get("currentPassword") as string) || undefined,
+    newPassword: (formData.get("newPassword") as string) || undefined,
+    confirmPassword: (formData.get("confirmPassword") as string) || undefined,
   }
 
   try {
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: targetUserId },
     })
 
     if (!user) {
       return { success: false, error: "المستخدم غير موجود." }
     }
 
+    // إذا لم يُرسل البريد في النموذج الاحتياطي، نستخدم البريد الحالي
+    if (!rawData.email) {
+      rawData.email = user.email
+    }
+
+    const validation = UpdateProfileActionSchema.safeParse(rawData)
+    if (!validation.success) {
+      return {
+        success: false,
+        error: validation.error.issues[0]?.message || "بيانات الإدخال غير صالحة.",
+      }
+    }
+
+    const { name, email, phone, currentPassword, newPassword } = validation.data
+
+    // التحقق من عدم استخدام البريد الإلكتروني الجديد من قبل مستخدم آخر
+    if (email !== user.email.toLowerCase()) {
+      const existingEmailUser = await prisma.user.findUnique({
+        where: { email },
+      })
+      if (existingEmailUser && existingEmailUser.id !== user.id) {
+        return {
+          success: false,
+          error: "البريد الإلكتروني مستخدم بالفعل لحساب آخر في النظام.",
+        }
+      }
+    }
+
     const updateData: any = {
       name,
-      phone,
+      email,
+      phone: phone || null,
+    }
+
+    // إزالة الصورة الشخصية إذا طلب المستخدم ذلك
+    const removeAvatar = formData.get("removeAvatar") === "true"
+    if (removeAvatar) {
+      updateData.imageUrl = null
     }
 
     // رفع صورة شخصية جديدة إن وجدت
     const avatarFile = formData.get("avatar") as File | null
-    if (avatarFile && avatarFile.size > 0) {
+    if (avatarFile && typeof avatarFile === "object" && avatarFile.size > 0) {
       const uploaded = await saveAvatarFile(avatarFile)
-      if (uploaded) {
-        updateData.imageUrl = uploaded
+      if (!uploaded) {
+        return {
+          success: false,
+          error: "فشل رفع الصورة. تأكد من أن الملف بصيغة (JPG, PNG, WEBP, GIF) وأقل من 5MB.",
+        }
       }
+      updateData.imageUrl = uploaded
     }
 
     // تغيير كلمة المرور إن تم طلب ذلك
-    if (newPassword) {
+    if (newPassword && newPassword.trim().length > 0) {
       if (!currentPassword) {
         return { success: false, error: "يرجى إدخال كلمة المرور الحالية لتأكيد التغيير." }
       }
@@ -422,15 +508,11 @@ export async function updateAdminProfileAction(formData: FormData) {
         return { success: false, error: "كلمة المرور الحالية غير صحيحة." }
       }
 
-      if (newPassword.length < 8) {
-        return { success: false, error: "كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف." }
-      }
-
       updateData.password = await bcrypt.hash(newPassword, 10)
     }
 
     const updated = await prisma.user.update({
-      where: { id: userId },
+      where: { id: user.id },
       data: updateData,
     })
 
@@ -439,8 +521,8 @@ export async function updateAdminProfileAction(formData: FormData) {
         eventType: "PROFILE_UPDATED",
         severity: "INFO",
         ipAddress: ip,
-        email: user.email,
-        details: `Admin profile updated. Password changed: ${Boolean(newPassword)}`,
+        email: updated.email,
+        details: `Admin profile updated (${updated.name}). Email changed: ${email !== user.email}. Password changed: ${Boolean(newPassword)}`,
       },
     })
 
@@ -460,3 +542,4 @@ export async function updateAdminProfileAction(formData: FormData) {
     return { success: false, error: error.message || "فشل تحديث الملف الشخصي." }
   }
 }
+

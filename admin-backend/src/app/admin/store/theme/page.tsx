@@ -29,8 +29,10 @@ import {
   ExternalLink,
   Sparkles,
 } from "lucide-react"
+import { HeroSectionManager } from "@/components/store/HeroSectionManager"
 
 type ActiveTabType =
+  | "hero_section"
   | "theme_settings"
   | "header_footer"
   | "product_settings"
@@ -39,7 +41,7 @@ type ActiveTabType =
   | "homepage_settings"
 
 export default function ThemeCustomizerPage() {
-  const [activeTab, setActiveTab] = useState<ActiveTabType>("homepage_settings")
+  const [activeTab, setActiveTab] = useState<ActiveTabType>("hero_section")
   const [loading, setLoading] = useState(false)
   const [savedNotification, setSavedNotification] = useState(false)
 
@@ -289,6 +291,22 @@ export default function ThemeCustomizerPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Side Navigation Tabs */}
         <div className="lg:col-span-3 bg-white border border-gray-100 rounded-xl p-2 shadow-sm space-y-1">
+          {/* 0. Hero Section (Interactive Hero Editor & Live Preview) */}
+          <button
+            onClick={() => setActiveTab("hero_section")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all text-left relative ${
+              activeTab === "hero_section"
+                ? "text-[#BE123C] bg-rose-50/50 font-semibold"
+                : "text-muted-foreground hover:bg-gray-50 hover:text-foreground"
+            }`}
+          >
+            {activeTab === "hero_section" && (
+              <span className="absolute left-0 top-2 bottom-2 w-1 bg-[#BE123C] rounded-r-full" />
+            )}
+            <Sparkles className="h-4 w-4 shrink-0" />
+            <span>Hero section</span>
+          </button>
+
           {/* 1. Theme settings */}
           <button
             onClick={() => setActiveTab("theme_settings")}
@@ -389,10 +407,16 @@ export default function ThemeCustomizerPage() {
         {/* Right Content Area */}
         <div className="lg:col-span-9 space-y-6">
           {/* ========================================================= */}
+          {/* TAB 0: HERO SECTION MANAGER (Interactive Live Preview)    */}
+          {/* ========================================================= */}
+          {activeTab === "hero_section" && <HeroSectionManager compact />}
+
+          {/* ========================================================= */}
           {/* TAB 6: HOMEPAGE SETTINGS (Screenshot 1)                   */}
           {/* ========================================================= */}
           {activeTab === "homepage_settings" && (
             <div className="space-y-6">
+              <HeroSectionManager compact />
               {/* Accordion 1: Section Slider */}
               <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                 <div className="flex items-center justify-between px-5 py-4 border-b bg-gray-50/30">

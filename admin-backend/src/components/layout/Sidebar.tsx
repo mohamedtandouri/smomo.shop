@@ -31,6 +31,9 @@ import {
   LayoutTemplate,
   Globe,
   Filter,
+  ShieldCheck,
+  UserCircle,
+  Sparkles,
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -41,6 +44,7 @@ type MenuItem = {
   key: string
   icon: React.ElementType
   href: string
+  matchPaths?: string[]
   badge?: string
   subItems?: { name: string; key: string; href: string; icon?: React.ElementType }[]
 }
@@ -89,6 +93,7 @@ const menuItems: MenuItem[] = [
     href: "/admin/store",
     subItems: [
       { name: "Store", key: "nav.store", href: "/admin/store", icon: Store },
+      { name: "Hero Section", key: "nav.hero", href: "/admin/store/hero", icon: Sparkles },
       { name: "Theme", key: "nav.theme", href: "/admin/store/theme", icon: Palette },
       { name: "Themes", key: "nav.themes", href: "/admin/store/themes", icon: LayoutTemplate },
       { name: "Menus", key: "nav.menus", href: "/admin/store/menus", icon: Menu },
@@ -98,10 +103,24 @@ const menuItems: MenuItem[] = [
     ]
   },
   { name: "Customers", key: "nav.customers", icon: Users, href: "/admin/customers" },
+  {
+    name: "Users",
+    key: "nav.users",
+    icon: ShieldCheck,
+    href: "/users",
+    matchPaths: ["/users", "/admin/users"],
+  },
   { name: "Analytics", key: "nav.analytics", icon: BarChart3, href: "/admin/analytics" },
   { name: "Insights", key: "nav.insights", icon: BarChart, href: "/admin/insights" },
   { name: "Invoices", key: "nav.invoices", icon: FileText, href: "/admin/invoices" },
   { name: "Apps", key: "nav.apps", icon: Grid, href: "/admin/apps" },
+  {
+    name: "Profile",
+    key: "nav.profile",
+    icon: UserCircle,
+    href: "/profile",
+    matchPaths: ["/profile", "/admin/profile"],
+  },
   { name: "Settings", key: "nav.settings", icon: Settings, href: "/admin/settings" },
 ]
 
@@ -190,7 +209,11 @@ export function Sidebar({
       
       <div className="flex-1 overflow-y-auto py-2 px-3 space-y-0.5 custom-scrollbar">
         {menuItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
+          const isActive = item.matchPaths
+            ? item.matchPaths.some((p) => pathname === p || pathname?.startsWith(`${p}/`))
+            : item.href === "/admin"
+            ? pathname === "/admin"
+            : pathname === item.href || (item.href !== "/" && pathname?.startsWith(`${item.href}/`))
           const isOpen = openMenus[item.name]
           const label = isMounted ? t(item.key, item.name) : item.name
 
@@ -240,10 +263,11 @@ export function Sidebar({
               ) : (
                 <Link
                   href={item.href}
+                  aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "flex items-center justify-between rounded-lg px-2.5 py-2 text-sm font-medium transition-colors outline-none",
+                    "relative flex items-center justify-between rounded-lg px-2.5 py-2 text-sm font-medium transition-all outline-none",
                     isActive 
-                      ? "bg-primary/10 text-primary font-semibold shadow-xs" 
+                      ? "bg-primary/10 text-primary font-semibold shadow-xs ring-1 ring-primary/20" 
                       : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                   )}
                 >
@@ -262,6 +286,14 @@ export function Sidebar({
                     >
                       {label}
                     </span>
+                    {isActive && (
+                      <span
+                        className={cn(
+                          "h-1.5 w-1.5 rounded-full bg-primary shrink-0 transition-opacity duration-300",
+                          isDesktop && !isPinned ? "opacity-0 group-hover:opacity-100" : "opacity-100"
+                        )}
+                      />
+                    )}
                   </div>
                 </Link>
               )}

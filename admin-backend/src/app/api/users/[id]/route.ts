@@ -64,7 +64,7 @@ export async function GET(
   }
 }
 
-// PUT /api/users/[id] - تحديث بيانات المستخدم (الاسم، الهاتف، الحالة، الدور)
+// PUT /api/users/[id] - تحديث بيانات المستخدم والصلاحيات (الاسم، البريد، الهاتف، الحالة، الدور، الصلاحيات)
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -75,7 +75,7 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, phone, role, status } = body
+    const { name, email, phone, role, status, permissions } = body
 
     const user = await db.user.findUnique({ where: { id } })
     if (!user) {
@@ -87,8 +87,23 @@ export async function PUT(
 
     const updateData: any = {}
     if (name && typeof name === "string") updateData.name = name.trim()
+    if (email && typeof email === "string") {
+      const cleanEmail = email.trim().toLowerCase()
+      if (cleanEmail !== user.email.toLowerCase()) {
+        const duplicate = await db.user.findUnique({ where: { email: cleanEmail } })
+        if (duplicate && duplicate.id !== id) {
+          return NextResponse.json(
+            { success: false, error: "البريد الإلكتروني مستخدم بالفعل لحساب آخر" },
+            { status: 409 }
+          )
+        }
+      }
+      updateData.email = cleanEmail
+    }
     if (phone !== undefined) updateData.phone = phone ? String(phone).trim() : null
-    if (role && (role === "USER" || role === "ADMIN")) updateData.role = role
+    if (role) {
+      updateData.role = role === "USER" ? "USER" : "ADMIN"
+    }
     if (status && (status === "ACTIVE" || status === "SUSPENDED")) updateData.status = status
 
     const updatedUser = await db.user.update({
@@ -104,6 +119,11 @@ export async function PUT(
         updatedAt: true,
       },
     })
+
+    if (Array.isArray(permissions)) {
+      const { setUserPermissions } = await import("@/lib/store-storage")
+      setUserPermissions(id, permissions, role || updatedUser.role)
+    }
 
     return NextResponse.json({
       success: true,

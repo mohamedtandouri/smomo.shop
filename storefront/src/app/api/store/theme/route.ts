@@ -144,15 +144,17 @@ export const defaultThemeConfig = {
   },
 }
 
-// الذاكرة التخزينية في الذاكرة الحية للجلسة الحالية
-let currentThemeConfig = { ...defaultThemeConfig }
+import { getPersistentThemeConfig, savePersistentThemeConfig } from "@/lib/store-storage"
+
+export const dynamic = "force-dynamic"
 
 // GET /api/store/theme
 export async function GET() {
   try {
+    const config = getPersistentThemeConfig(defaultThemeConfig)
     return NextResponse.json({
       success: true,
-      config: currentThemeConfig,
+      config,
     })
   } catch (error: any) {
     return NextResponse.json(
@@ -169,25 +171,22 @@ export async function POST(request: NextRequest) {
     const { action, config } = body
 
     if (action === "reset") {
-      currentThemeConfig = { ...defaultThemeConfig }
+      savePersistentThemeConfig(defaultThemeConfig)
       return NextResponse.json({
         success: true,
         message: "Theme settings reset to default",
-        config: currentThemeConfig,
+        config: defaultThemeConfig,
       })
     }
 
-    if (config) {
-      currentThemeConfig = {
-        ...currentThemeConfig,
-        ...config,
-      }
-    }
+    const current = getPersistentThemeConfig(defaultThemeConfig)
+    const updated = config ? { ...current, ...config } : current
+    savePersistentThemeConfig(updated)
 
     return NextResponse.json({
       success: true,
       message: "Theme settings saved successfully",
-      config: currentThemeConfig,
+      config: updated,
     })
   } catch (error: any) {
     return NextResponse.json(

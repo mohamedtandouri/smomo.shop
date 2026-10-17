@@ -63,7 +63,13 @@ export async function proxy(request: NextRequest) {
       return applySecurityHeaders(applyCors(request, new NextResponse(null, { status: 204 })))
     }
 
-    const selfAuthenticated = SELF_AUTHENTICATED_API_PREFIXES.some((p) => pathname.startsWith(p))
+    const isPublicHeroGet =
+      request.method === "GET" &&
+      (pathname === "/api/store/hero" || pathname === "/api/hero")
+
+    const selfAuthenticated =
+      isPublicHeroGet ||
+      SELF_AUTHENTICATED_API_PREFIXES.some((p) => pathname.startsWith(p))
     if (!selfAuthenticated) {
       const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
       if (!token) {
@@ -77,9 +83,16 @@ export async function proxy(request: NextRequest) {
     return applySecurityHeaders(applyCors(request, NextResponse.next()))
   }
 
-  // ---------- 2. Root & legacy redirects ----------
+  // ---------- 2. Root, storefront & legacy redirects ----------
   if (pathname === "/") {
     return NextResponse.redirect(new URL("/admin", request.url))
+  }
+
+  // توجيه أي طلب لروابط المتجر (/store/*) على منفذ لوحة التحكم (3000) إلى خادم المتجر (3001) لمنع خطأ 404
+  if (pathname === "/store" || pathname.startsWith("/store/")) {
+    const storefrontBase = process.env.NEXT_PUBLIC_STOREFRONT_URL || "http://localhost:3001"
+    const targetUrl = new URL(`${pathname}${request.nextUrl.search}`, storefrontBase)
+    return NextResponse.redirect(targetUrl, 307)
   }
 
   for (const route of LEGACY_ADMIN_ROUTES) {
@@ -88,8 +101,15 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // ---------- 3. Admin pages RBAC ----------
-  if (pathname.startsWith("/admin")) {
+  // ---------- 3. Admin pages RBAC (/admin/*, /profile, /users) ----------
+  const isProtectedDashboardRoute =
+    pathname.startsWith("/admin") ||
+    pathname === "/profile" ||
+    pathname.startsWith("/profile/") ||
+    pathname === "/users" ||
+    pathname.startsWith("/users/")
+
+  if (isProtectedDashboardRoute) {
     const isPublicPage = PUBLIC_ADMIN_PAGES.includes(pathname)
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
 

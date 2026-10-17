@@ -272,3 +272,207 @@ export function saveStoreApps(apps: StoreApp[]): void {
   fs.writeFileSync(APPS_FILE, JSON.stringify(apps, null, 2), "utf-8")
 }
 
+// ---------------------------------------------------------------------------
+// 6. STORE LANGUAGES & LOCALIZATION STORAGE
+// ---------------------------------------------------------------------------
+export interface StoreLanguageItem {
+  code: string
+  name: string
+  nativeName: string
+  direction: "RTL" | "LTR"
+  isDefault: boolean
+  enabled: boolean
+  completion: number
+  flag: string
+}
+
+const DEFAULT_LANGUAGES: StoreLanguageItem[] = [
+  {
+    code: "ar",
+    name: "Arabic (العربية)",
+    nativeName: "العربية",
+    direction: "RTL",
+    isDefault: true,
+    enabled: true,
+    completion: 100,
+    flag: "🇸🇦",
+  },
+  {
+    code: "en",
+    name: "English (US)",
+    nativeName: "English (US)",
+    direction: "LTR",
+    isDefault: false,
+    enabled: true,
+    completion: 100,
+    flag: "🇺🇸",
+  },
+  {
+    code: "fr",
+    name: "French (Français)",
+    nativeName: "Français",
+    direction: "LTR",
+    isDefault: false,
+    enabled: true,
+    completion: 96,
+    flag: "🇫🇷",
+  },
+  {
+    code: "es",
+    name: "Spanish (Español)",
+    nativeName: "Español",
+    direction: "LTR",
+    isDefault: false,
+    enabled: false,
+    completion: 80,
+    flag: "🇪🇸",
+  },
+]
+
+const LANGUAGES_FILE = path.join(DATA_DIR, "languages.json")
+
+export function getStoreLanguages(): StoreLanguageItem[] {
+  ensureDirectoryExists()
+  if (!fs.existsSync(LANGUAGES_FILE)) {
+    fs.writeFileSync(LANGUAGES_FILE, JSON.stringify(DEFAULT_LANGUAGES, null, 2), "utf-8")
+    return DEFAULT_LANGUAGES
+  }
+  try {
+    const raw = fs.readFileSync(LANGUAGES_FILE, "utf-8")
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_LANGUAGES
+  } catch {
+    return DEFAULT_LANGUAGES
+  }
+}
+
+export function saveStoreLanguages(languages: StoreLanguageItem[]): void {
+  ensureDirectoryExists()
+  fs.writeFileSync(LANGUAGES_FILE, JSON.stringify(languages, null, 2), "utf-8")
+}
+
+// ---------------------------------------------------------------------------
+// 7. USER PERMISSIONS & CUSTOM ROLES STORAGE
+// ---------------------------------------------------------------------------
+import {
+  type PermissionKey,
+  type UserRoleType,
+  type UserPermissionRecord,
+  ALL_PERMISSIONS,
+  ROLE_DEFAULT_PERMISSIONS,
+} from "./permissions-config"
+
+export {
+  type PermissionKey,
+  type UserRoleType,
+  type UserPermissionRecord,
+  ALL_PERMISSIONS,
+  ROLE_DEFAULT_PERMISSIONS,
+}
+
+const USER_PERMISSIONS_FILE = path.join(DATA_DIR, "user-permissions.json")
+
+export function getUserPermissionsMap(): Record<string, UserPermissionRecord> {
+  ensureDirectoryExists()
+  if (!fs.existsSync(USER_PERMISSIONS_FILE)) {
+    fs.writeFileSync(USER_PERMISSIONS_FILE, JSON.stringify({}, null, 2), "utf-8")
+    return {}
+  }
+  try {
+    const raw = fs.readFileSync(USER_PERMISSIONS_FILE, "utf-8")
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === "object" ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+export function saveUserPermissionsMap(map: Record<string, UserPermissionRecord>): void {
+  ensureDirectoryExists()
+  fs.writeFileSync(USER_PERMISSIONS_FILE, JSON.stringify(map, null, 2), "utf-8")
+}
+
+export function getUserPermissions(userId: string, dbRole: string = "USER"): UserPermissionRecord {
+  const map = getUserPermissionsMap()
+  if (map[userId]) {
+    return map[userId]
+  }
+  const normalizedRole: UserRoleType =
+    dbRole === "ADMIN" || dbRole === "MANAGER" || dbRole === "EDITOR" || dbRole === "SUPPORT"
+      ? (dbRole as UserRoleType)
+      : "USER"
+  return {
+    userId,
+    roleLabel: normalizedRole,
+    permissions: ROLE_DEFAULT_PERMISSIONS[normalizedRole] || ["view_products"],
+    updatedAt: new Date().toISOString(),
+  }
+}
+
+export function setUserPermissions(
+  userId: string,
+  permissions: PermissionKey[],
+  roleLabel: UserRoleType = "USER"
+): UserPermissionRecord {
+  const map = getUserPermissionsMap()
+  const record: UserPermissionRecord = {
+    userId,
+    roleLabel,
+    permissions: Array.from(new Set(permissions)),
+    updatedAt: new Date().toISOString(),
+  }
+  map[userId] = record
+  saveUserPermissionsMap(map)
+  return record
+}
+
+export function deleteUserPermissions(userId: string): void {
+  const map = getUserPermissionsMap()
+  if (map[userId]) {
+    delete map[userId]
+    saveUserPermissionsMap(map)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 8. STOREFRONT HERO SECTION STORAGE
+// ---------------------------------------------------------------------------
+import {
+  type HeroSectionData,
+  DEFAULT_HERO_SECTION,
+} from "./hero-config"
+
+export { type HeroSectionData, DEFAULT_HERO_SECTION }
+
+const HERO_FILE = path.join(DATA_DIR, "hero.json")
+
+export function getStoreHeroSection(): HeroSectionData {
+  ensureDirectoryExists()
+  if (!fs.existsSync(HERO_FILE)) {
+    fs.writeFileSync(HERO_FILE, JSON.stringify(DEFAULT_HERO_SECTION, null, 2), "utf-8")
+    return DEFAULT_HERO_SECTION
+  }
+  try {
+    const raw = fs.readFileSync(HERO_FILE, "utf-8")
+    const parsed = JSON.parse(raw)
+    return {
+      ...DEFAULT_HERO_SECTION,
+      ...(parsed && typeof parsed === "object" ? parsed : {}),
+    }
+  } catch {
+    return DEFAULT_HERO_SECTION
+  }
+}
+
+export function saveStoreHeroSection(data: Partial<HeroSectionData>): HeroSectionData {
+  ensureDirectoryExists()
+  const current = getStoreHeroSection()
+  const updated: HeroSectionData = {
+    ...current,
+    ...data,
+    id: "default_hero",
+    updatedAt: new Date().toISOString(),
+  }
+  fs.writeFileSync(HERO_FILE, JSON.stringify(updated, null, 2), "utf-8")
+  return updated
+}

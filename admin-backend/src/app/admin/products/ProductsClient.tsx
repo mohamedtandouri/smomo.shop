@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Search, Filter, Edit, Trash2, Package, Copy } from "lucide-react"
+import { Search, Filter, Edit, Trash2, Package, Copy, ExternalLink } from "lucide-react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -116,16 +116,19 @@ export function ProductsClient({ initialProducts }: { initialProducts: Product[]
                 filteredProducts.map((product) => (
                   <TableRow key={product.id} className="hover:bg-muted/30">
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 overflow-hidden items-center justify-center rounded bg-muted/50 border text-muted-foreground shrink-0">
+                      <Link
+                        href={`/admin/products/${encodeURIComponent(product.id)}/edit`}
+                        className="flex items-center gap-3 group"
+                      >
+                        <div className="flex h-10 w-10 overflow-hidden items-center justify-center rounded bg-muted/50 border text-muted-foreground shrink-0 group-hover:border-primary/50 transition-colors">
                           {product.imageUrl ? (
                             <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                           ) : (
                             <Package className="h-5 w-5" />
                           )}
                         </div>
-                        <span className="font-medium">{product.name}</span>
-                      </div>
+                        <span className="font-medium group-hover:text-primary transition-colors">{product.name}</span>
+                      </Link>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{product.category?.name || t("products.uncategorized", "Uncategorized")}</TableCell>
                     <TableCell className="font-medium">${product.price.toFixed(2)}</TableCell>
@@ -141,6 +144,20 @@ export function ProductsClient({ initialProducts }: { initialProducts: Product[]
                     </TableCell>
                     <TableCell className="text-end">
                       <div className="flex items-center justify-end gap-1">
+                        <a
+                          href={`http://localhost:3001/store/products/${encodeURIComponent(product.id)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-primary"
+                            title={t("nav.view_store", "View in Store")}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </a>
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -151,7 +168,7 @@ export function ProductsClient({ initialProducts }: { initialProducts: Product[]
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
-                        <Link href={`/admin/products/${product.id}/edit`}>
+                        <Link href={`/admin/products/${encodeURIComponent(product.id)}/edit`}>
                           <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" title={t("common.edit", "Edit")}>
                             <Edit className="h-4 w-4" />
                           </Button>

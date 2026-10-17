@@ -7,19 +7,19 @@ import ProfileClient from "./ProfileClient"
 export const dynamic = "force-dynamic"
 
 export const metadata = {
-  title: "الملف الشخصي للمسؤول · Admin Profile",
-  description: "عرض وتعديل بيانات حساب الإدارة ومراقبة سجلات الأمان",
+  title: "الملف الشخصي · User Profile",
+  description: "عرض وتعديل بيانات الملف الشخصي، الصورة الرمزية، وكلمة المرور",
 }
 
 export default async function AdminProfilePage() {
   const session = await getServerSession(authOptions)
 
-  // حماية المسار: التحقق من تسجيل الدخول وامتلاك دور ADMIN
   if (!session || !session.user || (session.user as any).role !== "ADMIN") {
-    redirect("/admin/login?callbackUrl=/admin/profile")
+    redirect("/admin/login?callbackUrl=/profile")
   }
 
-  const profileData = await getAdminProfileData(session.user.email!)
+  const identifier = (session.user as any).id || session.user.email!
+  const profileData = await getAdminProfileData(identifier)
 
   if (!profileData) {
     redirect("/admin/login")

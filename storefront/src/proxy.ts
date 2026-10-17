@@ -60,7 +60,27 @@ export async function proxy(request: NextRequest) {
     return applySecurityHeaders(NextResponse.rewrite(new URL("/store", request.url)))
   }
 
-  // 4. Customer dashboard requires a session
+  // 4. توحيد وتصحيح روابط المنتجات والمتجر المختصرة لمنع ظهور خطأ 404
+  if (pathname === "/products" || pathname === "/product" || pathname === "/store/product") {
+    const targetUrl = new URL("/store/products", request.url)
+    targetUrl.search = request.nextUrl.search
+    return applySecurityHeaders(NextResponse.redirect(targetUrl, 307))
+  }
+
+  if (
+    pathname.startsWith("/products/") ||
+    pathname.startsWith("/product/") ||
+    pathname.startsWith("/store/product/")
+  ) {
+    const rest = pathname
+      .replace(/^\/store\/product\//, "")
+      .replace(/^\/products?\//, "")
+    const targetUrl = new URL(`/store/products/${rest}`, request.url)
+    targetUrl.search = request.nextUrl.search
+    return applySecurityHeaders(NextResponse.redirect(targetUrl, 307))
+  }
+
+  // 5. Customer dashboard requires a session
   if (pathname.startsWith("/store/dashboard")) {
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
     if (!token) {

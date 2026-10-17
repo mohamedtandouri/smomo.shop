@@ -1,48 +1,17 @@
 {
   "themeSettings": {
-    "primaryColor": "#E11D48",
+    "primaryColor": "#4f46e5",
     "fontFamily": "Lato",
     "siteTitle": "Smomo Store",
     "faviconUrl": "",
     "enableRTL": true
   },
   "headerFooterSettings": {
-    "removeFooterBarNotice": "In order to remove the default footer bar, please add a custom domain or select one of the packs.",
     "mobileHeader": {
-      "items": [
-        "menu",
-        "logo",
-        "search",
-        "user",
-        "cart"
-      ],
       "background": "#FFFFFF",
       "buttonsColor": "#000000",
       "borderEnabled": true,
       "borderColor": "#F0F0F0"
-    },
-    "desktopHeader": {
-      "background": "#FFFFFF",
-      "textColor": "#111827",
-      "sticky": true
-    },
-    "footer": {
-      "background": "#111827",
-      "textColor": "#FFFFFF",
-      "showSocial": true,
-      "showCopyright": true
-    },
-    "desktopNoticeBar": {
-      "enabled": false,
-      "text": "Free shipping on orders over $50!",
-      "background": "#E11D48",
-      "textColor": "#FFFFFF"
-    },
-    "mobileNoticeBar": {
-      "enabled": false,
-      "text": "Free shipping on orders over $50!",
-      "background": "#E11D48",
-      "textColor": "#FFFFFF"
     }
   },
   "productSettings": {
@@ -54,83 +23,69 @@
       "scarcity": true,
       "visitors": true,
       "description": true,
-      "expressCheckoutForm": false,
+      "expressCheckoutForm": true,
       "addToCartAndQuantity": true,
-      "bundles": false
-    },
-    "stockCountdown": {
-      "showLowStockAlert": true,
-      "countdownTimer": true,
-      "visitorCounter": true
+      "bundles": true
     }
   },
   "checkoutSettings": {
     "fontFamily": "Lato",
-    "previewText": "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.",
     "colors": {
-      "background": "#FFFFFF",
-      "text": "#000000",
+      "backgroundColor": "#FFFFFF",
+      "textColor": "#000000",
       "headerBackground": "#FFFFFF",
       "summaryBackground": "#FCFCFC",
       "summaryForeground": "#1A1A1A",
+      "accentColor": "#E5E5E5",
+      "background": "#FFFFFF",
+      "text": "#000000",
       "accent": "#E5E5E5"
     },
-    "headerLogo": {
-      "url": "",
-      "width": 60
-    },
+    "logoWidth": 60,
     "onePageCheckout": true,
-    "showCoupon": true
+    "showCoupon": true,
+    "headerLogoUrl": ""
   },
   "cartBanner": {
-    "note": "Note: Cart bottom banner image size should be 1064 x 132",
-    "imageUrl": "/uploads/230df8f1-193c-4630-a892-6d8b10bba94e.jpg",
-    "enabled": true
+    "imageUrl": "/uploads/230df8f1-193c-4630-a892-6d8b10bba94e.jpg"
   },
   "homepageSettings": {
     "sections": [
       {
-        "id": "section-slider-1",
+        "id": "slider-1",
         "type": "slider",
-        "name": "Section Slider",
-        "activeTab": "slides",
         "slides": [
           {
             "id": "slide-1",
-            "imageUrl": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&auto=format&fit=crop&q=60",
-            "title": "Summer Collection",
-            "link": "/store/products"
+            "image": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&auto=format&fit=crop&q=60"
           },
           {
             "id": "slide-2",
-            "imageUrl": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&auto=format&fit=crop&q=60",
-            "title": "Special Gifts",
-            "link": "/store/products"
+            "image": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&auto=format&fit=crop&q=60"
           }
         ]
       },
       {
-        "id": "section-products-1",
+        "id": "products-1",
         "type": "products_list",
-        "name": "Section Products list",
         "title": "مجموعة مميزة",
         "subtitle": "اعثر على كل ما تريد",
         "limit": 4,
         "category": "",
         "viewType": "Grid",
-        "loadMoreButton": true
+        "loadMore": true
       },
       {
-        "id": "section-products-2",
+        "id": "products-2",
         "type": "products_list",
-        "name": "Section Products list",
         "title": "عروض خاصة",
         "subtitle": "اعثر على كل ما تريد",
         "limit": 4,
         "category": "",
         "viewType": "Slider",
-        "loadMoreButton": false
+        "loadMore": false
       }
     ]
-  }
+  },
+  "activeThemeId": "theme-3"
 }

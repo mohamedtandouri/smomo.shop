@@ -1,8 +1,10 @@
 import Link from "next/link"
-import { PrismaClient } from "@prisma/client"
+import { prisma } from "@/lib/db"
 import { ProductPrice } from "@/components/storefront/ProductPrice"
 
-const prisma = new PrismaClient()
+// ضمان جلب أحدث المنتجات والتصنيفات مباشرة من قاعدة البيانات المشتركة
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 export default async function ProductsPage({
   searchParams,
@@ -20,6 +22,7 @@ export default async function ProductsPage({
   let orderBy: any = { createdAt: 'desc' }
   if (sort === 'price_asc') orderBy = { price: 'asc' }
   if (sort === 'price_desc') orderBy = { price: 'desc' }
+  if (sort === 'popular') orderBy = { views: 'desc' }
 
   // Fetch products
   const products = await prisma.product.findMany({
@@ -102,13 +105,17 @@ export default async function ProductsPage({
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.map((product) => (
-                <Link href={`/store/products/${product.id}`} key={product.id} className="group block">
+                <Link href={`/store/products/${encodeURIComponent(product.id)}`} key={product.id} className="group block">
                   <div className="border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-xl hover:border-[#ff2d55]/30 transition-all duration-300 flex flex-col h-full">
-                    <div className="aspect-square bg-gray-100 relative overflow-hidden">
-                      <img 
-                        src={product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`} 
-                        alt={product.name}
-                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                    <div suppressHydrationWarning className="aspect-square bg-gray-100 relative overflow-hidden">
+                      <div
+                        role="img"
+                        aria-label={product.name}
+                        suppressHydrationWarning
+                        className="bg-cover bg-center w-full h-full group-hover:scale-105 transition-transform duration-500"
+                        style={{
+                          backgroundImage: `url("${product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`}")`,
+                        }}
                       />
                       {product.stock <= 5 && product.stock > 0 && (
                         <div className="absolute top-2 left-2 bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-1 rounded">

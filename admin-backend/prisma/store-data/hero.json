@@ -1,0 +1,21 @@
+{
+  "id": "default_hero",
+  "badgeText": "Leader en mobilier bureau Casablanca",
+  "title": "Votre espace de travail,",
+  "highlightText": "vos règles",
+  "subtitle": "Découvrez notre gamme de solutions personnalisées pour créer un environnement professionnel qui reflète votre identité et optimise votre efficacité.",
+  "buttonText": "Shop Collection",
+  "buttonUrl": "/store/products",
+  "secondaryButtonText": "Browse Categories",
+  "secondaryButtonUrl": "/store/categories",
+  "imagePath": "/uploads/hero/hero-1792276215308-af425e75.webp",
+  "backgroundColor": "#ffffff",
+  "accentColor": "#2563eb",
+  "textColor": "#111827",
+  "floatingBadgeValue": "4.9",
+  "floatingBadgeLabel": "Based on 78 reviews",
+  "showFloatingBadge": true,
+  "showTrustBadges": false,
+  "isActive": true,
+  "updatedAt": "2026-10-17T22:50:35.971Z"
+}

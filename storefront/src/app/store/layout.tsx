@@ -1,10 +1,13 @@
 import { StorefrontNavbar } from "@/components/storefront/StorefrontNavbar"
 import { StorefrontFooter } from "@/components/storefront/StorefrontFooter"
 import { getStoreSettings } from "@/app/actions/settings"
+import { getStoreMenus, getStoreLanguages } from "@/lib/store-storage"
 import { Wrench } from "lucide-react"
 import Link from "next/link"
 
+// إجبار التحديث الديناميكي لضمان مزامنة فورية مع تعديلات لوحة التحكم دون تخزين مؤقت قديم
 export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 export async function generateMetadata() {
   const settings = await getStoreSettings()
@@ -15,7 +18,11 @@ export async function generateMetadata() {
 }
 
 export default async function StorefrontLayout({ children }: { children: React.ReactNode }) {
+  // جلب الإعدادات والقوائم واللغات مباشرة من قاعدة البيانات والتخزين المشترك مع لوحة التحكم
   const settings = await getStoreSettings()
+  const menus = getStoreMenus()
+  const languages = getStoreLanguages()
+  const defaultLang = languages.find((l) => l.isDefault)?.code || "ar"
 
   // حالة وضع الصيانة (Maintenance Mode)
   if (settings.isMaintenanceMode) {
@@ -71,6 +78,8 @@ export default async function StorefrontLayout({ children }: { children: React.R
         storeName={settings.storeName}
         logoUrl={settings.logoUrl}
         primaryColor={settings.primaryColor}
+        headerLinks={menus.header}
+        defaultLocale={defaultLang}
       />
 
       {/* Main Content Area */}
@@ -81,9 +90,12 @@ export default async function StorefrontLayout({ children }: { children: React.R
       {/* Dynamic Footer */}
       <StorefrontFooter 
         storeName={settings.storeName}
+        storeDescription={settings.storeDescription}
         contactEmail={settings.contactEmail}
         contactPhone={settings.contactPhone}
         primaryColor={settings.primaryColor}
+        headerLinks={menus.header}
+        footerLinks={menus.footer}
       />
     </div>
   )

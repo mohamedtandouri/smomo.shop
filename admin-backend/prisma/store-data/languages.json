@@ -1,0 +1,42 @@
+[
+  {
+    "code": "ar",
+    "name": "Arabic (العربية)",
+    "nativeName": "العربية",
+    "direction": "RTL",
+    "isDefault": true,
+    "enabled": true,
+    "completion": 100,
+    "flag": "🇸🇦"
+  },
+  {
+    "code": "en",
+    "name": "English (US)",
+    "nativeName": "English (US)",
+    "direction": "LTR",
+    "isDefault": false,
+    "enabled": true,
+    "completion": 100,
+    "flag": "🇺🇸"
+  },
+  {
+    "code": "fr",
+    "name": "French (Français)",
+    "nativeName": "Français",
+    "direction": "LTR",
+    "isDefault": false,
+    "enabled": true,
+    "completion": 96,
+    "flag": "🇫🇷"
+  },
+  {
+    "code": "es",
+    "name": "Spanish (Español)",
+    "nativeName": "Español",
+    "direction": "LTR",
+    "isDefault": false,
+    "enabled": false,
+    "completion": 80,
+    "flag": "🇪🇸"
+  }
+]

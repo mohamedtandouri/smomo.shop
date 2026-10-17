@@ -40,6 +40,16 @@ async function saveLogoFile(file: File | null): Promise<string | null> {
   try {
     await mkdir(uploadDir, { recursive: true })
     await writeFile(join(uploadDir, filename), buffer)
+
+    // نسخ الشعار المرفوع أيضاً إلى مجلد public/uploads الخاص بواجهة المتجر (storefront) لضمان ظهوره فوراً
+    try {
+      const storefrontUploadDir = join(process.cwd(), "..", "storefront", "public", "uploads")
+      await mkdir(storefrontUploadDir, { recursive: true })
+      await writeFile(join(storefrontUploadDir, filename), buffer)
+    } catch {
+      // تجاهل الخطأ في حال عدم وجود مجلد المتجر المنفصل
+    }
+
     return `/uploads/${filename}`
   } catch (error) {
     console.error("Error saving logo file:", error)

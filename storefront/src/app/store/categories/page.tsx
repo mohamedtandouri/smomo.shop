@@ -1,8 +1,10 @@
-import { PrismaClient } from "@prisma/client"
+import { prisma } from "@/lib/db"
 import Link from "next/link"
 import { Folder } from "lucide-react"
 
-const prisma = new PrismaClient()
+// ضمان جلب أحدث التصنيفات مباشرة من قاعدة البيانات المشتركة
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 export default async function CategoriesPage() {
   const categories = await prisma.category.findMany({
@@ -34,9 +36,15 @@ export default async function CategoriesPage() {
                 className="group"
               >
                 <div className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-lg hover:border-[#ff2d55]/30 transition-all duration-300 flex items-start gap-4">
-                  <div className="w-12 h-12 bg-gray-50 text-[#ff2d55] rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-[#ff2d55]/10 transition-transform overflow-hidden">
+                  <div suppressHydrationWarning className="w-12 h-12 bg-gray-50 text-[#ff2d55] rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-[#ff2d55]/10 transition-transform overflow-hidden">
                     {category.imageUrl ? (
-                      <img src={category.imageUrl} alt={category.name} className="w-full h-full object-cover" />
+                      <div
+                        role="img"
+                        aria-label={category.name}
+                        suppressHydrationWarning
+                        className="w-full h-full bg-cover bg-center"
+                        style={{ backgroundImage: `url("${category.imageUrl}")` }}
+                      />
                     ) : (
                       <Folder className="w-6 h-6" />
                     )}

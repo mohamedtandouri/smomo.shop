@@ -301,3 +301,29 @@ model InventoryReview {
   @@index([productId])
   @@index([date])
 }
+
+// -------------------------
+// HERO SECTION (Storefront Hero Configuration)
+// -------------------------
+model HeroSection {
+  id                  String   @id @default("default_hero")
+  badgeText           String?  @default("Premium E-Commerce Experience")
+  title               String   @default("Elevate Your")
+  highlightText       String?  @default("Lifestyle.")
+  subtitle            String   @default("Discover our curated collection of premium products. Experience fast shipping, secure payments, and unparalleled quality.")
+  buttonText          String   @default("Shop Collection")
+  buttonUrl           String   @default("/store/products")
+  secondaryButtonText String?  @default("Browse Categories")
+  secondaryButtonUrl  String?  @default("/store/categories")
+  imagePath           String   @default("/hero_products.png")
+  backgroundColor     String   @default("#ffffff")
+  accentColor         String   @default("#ff2d55")
+  textColor           String   @default("#111827")
+  floatingBadgeValue  String?  @default("10k+")
+  floatingBadgeLabel  String?  @default("Happy Customers")
+  showFloatingBadge   Boolean  @default(true)
+  showTrustBadges     Boolean  @default(true)
+  isActive            Boolean  @default(true)
+  updatedAt           DateTime @updatedAt
+}
+
