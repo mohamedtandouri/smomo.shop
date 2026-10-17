@@ -1,0 +1,101 @@
+services:
+  # -------------------------------------------------------------------------
+  # 1. Database (PostgreSQL 15)
+  # -------------------------------------------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: smomo-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-smomo_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smomo_secure_password_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-smomo_db}
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    volumes:
+      - smomo-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-smomo_user} -d ${POSTGRES_DB:-smomo_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - smomo-network
+
+  # -------------------------------------------------------------------------
+  # 2. Redis Cache
+  # -------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: smomo-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - smomo-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - smomo-network
+
+  # -------------------------------------------------------------------------
+  # 3. Admin Backend & Headless API (Port 3000)
+  # -------------------------------------------------------------------------
+  admin-backend:
+    build:
+      context: ./admin-backend
+      dockerfile: Dockerfile
+    container_name: smomo-admin-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-smomo_user}:${POSTGRES_PASSWORD:-smomo_secure_password_2026}@db:5432/${POSTGRES_DB:-smomo_db}?schema=public
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-super_secret_smomo_jwt_and_session_token_2026_key}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - REDIS_URL=redis://redis:6379
+      - PORT=3000
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - smomo-network
+
+  # -------------------------------------------------------------------------
+  # 4. Decoupled Customer Storefront (Port 3001)
+  # -------------------------------------------------------------------------
+  storefront:
+    build:
+      context: ./storefront
+      dockerfile: Dockerfile
+    container_name: smomo-storefront
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - NEXT_PUBLIC_API_URL=http://localhost:3000/api
+      - PORT=3001
+    depends_on:
+      - admin-backend
+    networks:
+      - smomo-network
+
+networks:
+  smomo-network:
+    driver: bridge
+
+volumes:
+  smomo-db-data:
+    driver: local
+  smomo-redis-data:
+    driver: local

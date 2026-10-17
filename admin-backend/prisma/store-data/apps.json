@@ -1,0 +1,42 @@
+[
+  {
+    "id": "stripe",
+    "name": "Stripe Payments",
+    "description": "Accept credit cards and digital wallets securely on your store.",
+    "category": "Payment",
+    "installed": true,
+    "apiKey": "pk_live_************************"
+  },
+  {
+    "id": "mailchimp",
+    "name": "Mailchimp",
+    "description": "Automate your email marketing and reach out to abandoned carts.",
+    "category": "Marketing",
+    "installed": true,
+    "apiKey": "mc_************************"
+  },
+  {
+    "id": "analytics",
+    "name": "Google Analytics 4",
+    "description": "Get deeper insights into your store traffic and customer behavior.",
+    "category": "Analytics",
+    "installed": false,
+    "apiKey": ""
+  },
+  {
+    "id": "whatsapp",
+    "name": "WhatsApp Quick Order",
+    "description": "Let customers checkout directly and talk to customer support via WhatsApp.",
+    "category": "Support",
+    "installed": true,
+    "apiKey": "+966500000000"
+  },
+  {
+    "id": "tiktok",
+    "name": "TikTok Pixel",
+    "description": "Track conversions and optimize dynamic product ad campaigns on TikTok.",
+    "category": "Marketing",
+    "installed": false,
+    "apiKey": ""
+  }
+]

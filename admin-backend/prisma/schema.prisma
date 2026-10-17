@@ -1,0 +1,303 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------
+// USERS & PROFILES
+// -------------------------
+model User {
+  id        String    @id @default(cuid())
+  name      String
+  email     String    @unique
+  password  String
+  phone     String?
+  role      String    @default("USER") // USER or ADMIN
+  status    String    @default("ACTIVE") // ACTIVE or SUSPENDED
+  imageUrl  String?
+  
+  profile        Profile?
+  orders         Order[]
+  wishlist       WishlistItem[]
+  abandonedCarts AbandonedCart[]
+  reviews        Review[]
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Profile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  address   String?
+  city      String?
+  zipCode   String?
+  country   String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -------------------------
+// PRODUCTS & CATEGORIES
+// -------------------------
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  products    Product[]
+}
+
+model Product {
+  id             String   @id @default(cuid())
+  name           String
+  sku            String?  @unique
+  description    String?
+  price          Decimal  @default(0)
+  compareAtPrice Decimal?
+  stock          Int      @default(0)
+  imageUrl       String?
+  views          Int      @default(0)
+  
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  
+  orderItems        OrderItem[]
+  reviews           Review[]
+  wishlistItems     WishlistItem[]
+  cartItems         AbandonedCartItem[]
+  inventoryReviews  InventoryReview[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// -------------------------
+// ORDERS
+// -------------------------
+model Order {
+  id            String      @id @default(cuid())
+  orderNumber   String      @unique
+  imageUrl      String?
+  customerName  String?     @default("Guest Customer")
+  customerEmail String?
+  
+  userId        String?
+  user          User?       @relation(fields: [userId], references: [id])
+  
+  status        String      @default("Processing") // Processing, Shipped, Delivered, Cancelled, Pending
+  
+  subtotal      Decimal     @default(0)
+  discount      Decimal     @default(0)
+  shippingFee   Decimal     @default(0)
+  tax           Decimal     @default(0)
+  total         Decimal     @default(0)
+  
+  note          String?
+  tags          String?     // Comma separated tags
+  
+  items         OrderItem[]
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  
+  quantity  Int
+  price     Decimal
+}
+
+// -------------------------
+// MARKETING (Coupons & Up Sells)
+// -------------------------
+model Coupon {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  discountType  String   // FIXED or PERCENTAGE
+  discountValue Decimal
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+}
+
+model UpSell {
+  id            String   @id @default(cuid())
+  name          String
+  targetProductId String
+  offerProductId  String
+  discount      Decimal
+  isActive      Boolean  @default(true)
+}
+
+// -------------------------
+// REVIEWS
+// -------------------------
+model Review {
+  id           String    @id @default(cuid())
+  productId    String
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerName String?   @default("Customer")
+  rating       Int       @default(5)
+  comment      String?
+  status       String    @default("APPROVED") // APPROVED, PENDING, REJECTED
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([productId])
+  @@index([userId])
+  @@index([rating])
+  @@index([createdAt])
+}
+
+// -------------------------
+// STORE SETTINGS (Singleton)
+// -------------------------
+model StoreSettings {
+  id                 String   @id @default("store_config")
+  storeName          String   @default("Smomo")
+  storeDescription   String?  @default("Your premium online store")
+  logoUrl            String?
+  faviconUrl         String?
+  primaryColor       String   @default("#ff2d55")
+  secondaryColor     String   @default("#111827")
+  accentColor        String   @default("#3b82f6")
+  currency           String   @default("USD")
+  contactEmail       String?  @default("contact@smomo.shop")
+  contactPhone       String?  @default("+1 (555) 000-0000")
+  announcementActive Boolean  @default(false)
+  announcementText   String?  @default("Free shipping on all orders over $50! Use code WELCOME10")
+  announcementUrl    String?  @default("/store/products")
+  isMaintenanceMode  Boolean  @default(false)
+  updatedAt          DateTime @updatedAt
+}
+
+// -------------------------
+// SECURITY & BRUTE FORCE DEFENSE
+// -------------------------
+model LoginAttempt {
+  id         String   @id @default(cuid())
+  ipAddress  String
+  email      String
+  success    Boolean
+  createdAt  DateTime @default(now())
+
+  @@index([ipAddress, createdAt])
+  @@index([email, createdAt])
+}
+
+model BlockedTarget {
+  id           String    @id @default(cuid())
+  ipAddress    String    @unique
+  reason       String
+  isPermanent  Boolean   @default(false)
+  blockedUntil DateTime?
+  createdAt    DateTime  @default(now())
+}
+
+model SecurityLog {
+  id         String   @id @default(cuid())
+  eventType  String   // LOGIN_FAILED, COOLDOWN_APPLIED, IP_BLOCKED, LOGIN_SUCCESS
+  severity   String   @default("INFO") // INFO, WARNING, CRITICAL
+  ipAddress  String
+  email      String?
+  details    String?
+  createdAt  DateTime @default(now())
+
+  @@index([ipAddress])
+  @@index([createdAt])
+}
+
+// -------------------------
+// WISHLIST
+// -------------------------
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+// -------------------------
+// ABANDONED CARTS
+// -------------------------
+model AbandonedCart {
+  id                  String              @id @default(cuid())
+  userId              String?
+  user                User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerName        String
+  customerEmail       String
+  customerPhone       String?
+  itemsCount          Int                 @default(1)
+  totalValue          Decimal             @default(0)
+  abandonedAt         DateTime            @default(now())
+  status              String              @default("ABANDONED") // ABANDONED, CONTACTED, WAITING_REPLY, RECOVERED, EMAIL_SENT
+  recoveryEmailSentAt DateTime?
+  notes               String?
+  items               AbandonedCartItem[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([customerEmail])
+  @@index([status])
+  @@index([abandonedAt])
+  @@index([userId])
+}
+
+model AbandonedCartItem {
+  id        String        @id @default(cuid())
+  cartId    String
+  cart      AbandonedCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int           @default(1)
+  price     Decimal
+  createdAt DateTime      @default(now())
+
+  @@index([cartId])
+  @@index([productId])
+}
+
+// -------------------------
+// INVENTORY REVIEWS & AUDITS
+// -------------------------
+model InventoryReview {
+  id          String   @id @default(cuid())
+  reviewCode  String   @unique // e.g. REV-001
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName String
+  sku         String
+  expected    Int
+  actual      Int
+  status      String   @default("matched") // "matched" or "discrepancy"
+  notes       String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([reviewCode])
+  @@index([productId])
+  @@index([date])
+}

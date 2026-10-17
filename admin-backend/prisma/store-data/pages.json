@@ -1,0 +1,42 @@
+[
+  {
+    "id": "p1",
+    "title": "About Us",
+    "slug": "about-us",
+    "content": "Learn about the Smomo brand story, mission and quality commitment.",
+    "status": "published",
+    "lastUpdated": "2024-10-20"
+  },
+  {
+    "id": "p2",
+    "title": "Privacy Policy",
+    "slug": "privacy-policy",
+    "content": "Our comprehensive privacy and customer data protection policy.",
+    "status": "published",
+    "lastUpdated": "2024-10-18"
+  },
+  {
+    "id": "p3",
+    "title": "Terms of Service",
+    "slug": "terms-of-service",
+    "content": "General terms and conditions for shopping on Smomo store.",
+    "status": "published",
+    "lastUpdated": "2024-10-15"
+  },
+  {
+    "id": "p4",
+    "title": "Shipping & Delivery",
+    "slug": "shipping-delivery",
+    "content": "Information regarding international shipping rates and delivery schedules.",
+    "status": "published",
+    "lastUpdated": "2024-10-12"
+  },
+  {
+    "id": "p5",
+    "title": "Frequently Asked Questions (FAQ)",
+    "slug": "faq",
+    "content": "Answers to common questions about orders, payments, returns and warranty.",
+    "status": "draft",
+    "lastUpdated": "2024-10-08"
+  }
+]

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "funnel-1",
+    "name": "Flash Sale One-Product Funnel",
+    "status": "Active",
+    "visitors": 4250,
+    "conversionRate": "8.4%",
+    "revenue": "$14,250",
+    "steps": [
+      "Direct Landing Page",
+      "Express 1-Page Checkout",
+      "Post-Purchase Upsell",
+      "Thank You"
+    ],
+    "createdAt": "2024-10-10"
+  },
+  {
+    "id": "funnel-2",
+    "name": "Holiday VIP Bundle Accelerator",
+    "status": "Active",
+    "visitors": 6180,
+    "conversionRate": "11.2%",
+    "revenue": "$26,890",
+    "steps": [
+      "Bundle Offer Page",
+      "Checkout with Coupon",
+      "Fast-Track Shipping Upsell",
+      "Thank You"
+    ],
+    "createdAt": "2024-10-12"
+  },
+  {
+    "id": "funnel-3",
+    "name": "Wireless Audio Campaign",
+    "status": "Draft",
+    "visitors": 120,
+    "conversionRate": "4.1%",
+    "revenue": "$540",
+    "steps": [
+      "Product Demo Page",
+      "Checkout",
+      "Warranty Extension",
+      "Thank You"
+    ],
+    "createdAt": "2024-10-14"
+  }
+]
