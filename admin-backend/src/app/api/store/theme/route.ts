@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import {
+  DEFAULT_HEADER_FOOTER_SETTINGS,
+  mergeHeaderFooterSettings,
+} from "@/lib/theme-config"
 
 // الإعدادات الافتراضية المطابقة تماماً للصور الخمس المرفقة
 export const defaultThemeConfig = {
@@ -12,40 +15,8 @@ export const defaultThemeConfig = {
     enableRTL: true,
   },
 
-  // 2. إعدادات الهيدر والفوتر (Header / Footer Settings - الصورة 5)
-  headerFooterSettings: {
-    removeFooterBarNotice: "In order to remove the default footer bar, please add a custom domain or select one of the packs.",
-    mobileHeader: {
-      items: ["menu", "logo", "search", "user", "cart"],
-      background: "#FFFFFF",
-      buttonsColor: "#000000",
-      borderEnabled: true,
-      borderColor: "#F0F0F0",
-    },
-    desktopHeader: {
-      background: "#FFFFFF",
-      textColor: "#111827",
-      sticky: true,
-    },
-    footer: {
-      background: "#111827",
-      textColor: "#FFFFFF",
-      showSocial: true,
-      showCopyright: true,
-    },
-    desktopNoticeBar: {
-      enabled: false,
-      text: "Free shipping on orders over $50!",
-      background: "#E11D48",
-      textColor: "#FFFFFF",
-    },
-    mobileNoticeBar: {
-      enabled: false,
-      text: "Free shipping on orders over $50!",
-      background: "#E11D48",
-      textColor: "#FFFFFF",
-    },
-  },
+  // 2. إعدادات الهيدر والفوتر والنشرة البريدية (Header / Footer / Newsletter Settings)
+  headerFooterSettings: DEFAULT_HEADER_FOOTER_SETTINGS,
 
   // 3. إعدادات صفحة المنتج (Product Settings - الصورة 3)
   productSettings: {
@@ -149,7 +120,12 @@ import { getPersistentThemeConfig, savePersistentThemeConfig } from "@/lib/store
 // GET /api/store/theme
 export async function GET() {
   try {
-    const config = getPersistentThemeConfig(defaultThemeConfig)
+    const rawConfig = getPersistentThemeConfig(defaultThemeConfig)
+    const config = {
+      ...defaultThemeConfig,
+      ...rawConfig,
+      headerFooterSettings: mergeHeaderFooterSettings(rawConfig?.headerFooterSettings),
+    }
     return NextResponse.json({
       success: true,
       config,
@@ -182,7 +158,21 @@ export async function POST(request: NextRequest) {
     }
 
     const current = getPersistentThemeConfig(defaultThemeConfig)
-    const updated = config ? { ...current, ...config } : current
+    const mergedHeaderFooter = config?.headerFooterSettings
+      ? mergeHeaderFooterSettings({
+          ...current?.headerFooterSettings,
+          ...config.headerFooterSettings,
+        })
+      : mergeHeaderFooterSettings(current?.headerFooterSettings)
+
+    const updated = config
+      ? {
+          ...current,
+          ...config,
+          headerFooterSettings: mergedHeaderFooter,
+        }
+      : current
+
     savePersistentThemeConfig(updated)
 
     return NextResponse.json({

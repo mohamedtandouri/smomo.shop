@@ -1,15 +1,16 @@
 import Link from "next/link"
 import { prisma } from "@/lib/db"
-import { getStoreHeroSection } from "@/lib/store-storage"
+import { getStoreHeroSection, getPersistentThemeConfig } from "@/lib/store-storage"
 import { Truck, ShieldCheck, Headset, ArrowRight, Star, ShoppingBag } from "lucide-react"
 
-// ضمان جلب أحدث المنتجات وقسم الهيرو مباشرة من قاعدة البيانات المشتركة مع لوحة التحكم
+// ضمان جلب أحدث المنتجات وقسم الهيرو والنشرة البريدية مباشرة من قاعدة البيانات المشتركة مع لوحة التحكم
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 export default async function StorefrontHomePage() {
-  const [hero, featuredProducts, mostViewedProducts] = await Promise.all([
+  const [hero, themeConfig, featuredProducts, mostViewedProducts] = await Promise.all([
     getStoreHeroSection(),
+    Promise.resolve(getPersistentThemeConfig()),
     prisma.product.findMany({
       take: 4,
       orderBy: { createdAt: 'desc' }
@@ -338,34 +339,6 @@ export default async function StorefrontHomePage() {
               <p className="text-gray-500 font-light text-sm leading-relaxed">Our dedicated support team is always ready to help you with any questions. We're just a message away.</p>
             </div>
           </div>
-        </div>
-      </section>
-      
-      {/* Newsletter / CTA */}
-      <section className="py-24 relative overflow-hidden bg-gray-950 text-white">
-        {/* Abstract Background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-20%] left-[-10%] w-[40%] h-[120%] bg-[#ff2d55] opacity-10 blur-[100px] transform rotate-12" />
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.02]" />
-        </div>
-        
-        <div className="container mx-auto px-4 max-w-6xl text-center relative z-10">
-          <span className="inline-block px-3 py-1 rounded-full bg-white/5 text-gray-300 font-medium text-xs mb-5 border border-white/10 uppercase tracking-widest">Newsletter</span>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">Join The Club</h2>
-          <p className="text-gray-400 text-sm md:text-base mb-10 max-w-lg mx-auto font-light leading-relaxed">
-            Subscribe to our newsletter and get <span className="text-white font-medium">15% off</span> your first order, plus exclusive early access to new arrivals.
-          </p>
-          <form className="max-w-md mx-auto flex flex-col sm:flex-row gap-2 bg-white/5 p-1.5 rounded-2xl sm:rounded-full border border-white/10">
-            <input 
-              type="email" 
-              placeholder="Enter your email address..." 
-              className="flex-1 px-5 py-3 bg-transparent border-none focus:ring-0 outline-none text-white placeholder-gray-500 font-light text-sm"
-              required
-            />
-            <button type="submit" className="px-6 py-3 bg-[#ff2d55] text-white rounded-xl sm:rounded-full font-medium text-sm hover:bg-rose-500 transition-colors shadow-md">
-              Subscribe
-            </button>
-          </form>
         </div>
       </section>
     </div>

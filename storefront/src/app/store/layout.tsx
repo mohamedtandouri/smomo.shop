@@ -1,7 +1,7 @@
 import { StorefrontNavbar } from "@/components/storefront/StorefrontNavbar"
 import { StorefrontFooter } from "@/components/storefront/StorefrontFooter"
 import { getStoreSettings } from "@/app/actions/settings"
-import { getStoreMenus, getStoreLanguages } from "@/lib/store-storage"
+import { getStoreMenus, getStoreLanguages, getPersistentThemeConfig } from "@/lib/store-storage"
 import { Wrench } from "lucide-react"
 import Link from "next/link"
 
@@ -18,11 +18,13 @@ export async function generateMetadata() {
 }
 
 export default async function StorefrontLayout({ children }: { children: React.ReactNode }) {
-  // جلب الإعدادات والقوائم واللغات مباشرة من قاعدة البيانات والتخزين المشترك مع لوحة التحكم
+  // جلب الإعدادات والقوائم واللغات وإعدادات القالب مباشرة من قاعدة البيانات والتخزين المشترك مع لوحة التحكم
   const settings = await getStoreSettings()
   const menus = getStoreMenus()
   const languages = getStoreLanguages()
+  const themeConfig = getPersistentThemeConfig()
   const defaultLang = languages.find((l) => l.isDefault)?.code || "ar"
+  const desktopNotice = themeConfig?.headerFooterSettings?.desktopNoticeBar
 
   // حالة وضع الصيانة (Maintenance Mode)
   if (settings.isMaintenanceMode) {
@@ -57,29 +59,37 @@ export default async function StorefrontLayout({ children }: { children: React.R
       }}
     >
       {/* Dynamic Top Announcement Bar */}
-      {settings.announcementActive && settings.announcementText && (
+      {(desktopNotice?.enabled || (settings.announcementActive && settings.announcementText)) && (
         <div 
-          className="py-2.5 px-4 text-center text-xs font-semibold text-white transition-colors flex items-center justify-center gap-2 shadow-xs"
-          style={{ backgroundColor: settings.primaryColor }}
+          className="py-2.5 px-4 text-center text-xs font-semibold transition-colors flex items-center justify-center gap-2 shadow-xs"
+          style={{
+            backgroundColor: desktopNotice?.enabled ? desktopNotice.backgroundColor : settings.primaryColor,
+            color: desktopNotice?.enabled ? desktopNotice.textColor : "#ffffff",
+          }}
         >
-          {settings.announcementUrl ? (
-            <Link href={settings.announcementUrl} className="hover:underline flex items-center gap-1.5">
-              <span>{settings.announcementText}</span>
+          {(desktopNotice?.enabled ? desktopNotice.linkUrl : settings.announcementUrl) ? (
+            <Link
+              href={(desktopNotice?.enabled ? desktopNotice.linkUrl : settings.announcementUrl) || "/store"}
+              className="hover:underline flex items-center gap-1.5"
+            >
+              <span>{desktopNotice?.enabled ? desktopNotice.text : settings.announcementText}</span>
               <span className="opacity-80 text-[10px]">→</span>
             </Link>
           ) : (
-            <span>{settings.announcementText}</span>
+            <span>{desktopNotice?.enabled ? desktopNotice.text : settings.announcementText}</span>
           )}
         </div>
       )}
 
       {/* Dynamic Navigation Bar */}
       <StorefrontNavbar 
-        storeName={settings.storeName}
-        logoUrl={settings.logoUrl}
+        storeName={themeConfig?.headerFooterSettings?.footer?.brandName || settings.storeName}
+        logoUrl={themeConfig?.headerFooterSettings?.footer?.brandLogoUrl || settings.logoUrl}
         primaryColor={settings.primaryColor}
         headerLinks={menus.header}
         defaultLocale={defaultLang}
+        headerConfig={themeConfig?.headerFooterSettings?.desktopHeader}
+        mobileConfig={themeConfig?.headerFooterSettings?.mobileHeader}
       />
 
       {/* Main Content Area */}
@@ -87,15 +97,17 @@ export default async function StorefrontLayout({ children }: { children: React.R
         {children}
       </main>
 
-      {/* Dynamic Footer */}
+      {/* Dynamic Footer with Seamless Newsletter Section */}
       <StorefrontFooter 
-        storeName={settings.storeName}
-        storeDescription={settings.storeDescription}
-        contactEmail={settings.contactEmail}
-        contactPhone={settings.contactPhone}
+        storeName={themeConfig?.headerFooterSettings?.footer?.brandName || settings.storeName}
+        storeDescription={themeConfig?.headerFooterSettings?.footer?.slogan || settings.storeDescription}
+        contactEmail={themeConfig?.headerFooterSettings?.footer?.contact?.email || settings.contactEmail}
+        contactPhone={themeConfig?.headerFooterSettings?.footer?.contact?.phone || settings.contactPhone}
         primaryColor={settings.primaryColor}
         headerLinks={menus.header}
         footerLinks={menus.footer}
+        footerConfig={themeConfig?.headerFooterSettings?.footer}
+        newsletterConfig={themeConfig?.headerFooterSettings?.newsletter}
       />
     </div>
   )

@@ -12,12 +12,26 @@ import { useSession, signOut } from "next-auth/react"
 import { UserProfileDropdown } from "./UserProfileDropdown"
 import { StoreMenuItem } from "@/lib/store-storage"
 
+export interface HeaderBarConfigProps {
+  activeItems?: string[]
+  hiddenItems?: string[]
+  background?: string
+  buttonsColor?: string
+  textColor?: string
+  activeLinkColor?: string
+  borderEnabled?: boolean
+  borderColor?: string
+  sticky?: boolean
+}
+
 interface StorefrontNavbarProps {
   storeName?: string
   logoUrl?: string | null
   primaryColor?: string
   headerLinks?: StoreMenuItem[]
   defaultLocale?: string
+  headerConfig?: HeaderBarConfigProps
+  mobileConfig?: HeaderBarConfigProps
 }
 
 export function StorefrontNavbar({ 
@@ -25,6 +39,8 @@ export function StorefrontNavbar({
   logoUrl, 
   primaryColor = "#ff2d55",
   headerLinks,
+  headerConfig,
+  mobileConfig,
 }: StorefrontNavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
@@ -35,6 +51,24 @@ export function StorefrontNavbar({
   const { t } = useLocaleStore()
   
   const cartItemCount = useCartStore((state) => state.getTotalItems())
+
+  const isSticky = headerConfig?.sticky !== false
+  const activeBg = headerConfig?.background || "#FFFFFF"
+  const activeButtonsColor = headerConfig?.buttonsColor || "#111827"
+  const activeTextColor = headerConfig?.textColor || "#4B5563"
+  const activeLinkColor = headerConfig?.activeLinkColor || primaryColor || "#4F46E5"
+  const hasBorder = headerConfig?.borderEnabled !== false
+  const borderColor = headerConfig?.borderColor || "#F0F0F0"
+
+  const hiddenDesktop = headerConfig?.hiddenItems || []
+  const hiddenMobile = mobileConfig?.hiddenItems || []
+
+  const showLogo = !hiddenDesktop.includes("logo")
+  const showSearch = !hiddenDesktop.includes("search")
+  const showUser = !hiddenDesktop.includes("user")
+  const showCart = !hiddenDesktop.includes("cart")
+  const showCurrency = !hiddenDesktop.includes("currency")
+  const showLanguage = !hiddenDesktop.includes("language")
 
   useEffect(() => {
     const timer = setTimeout(() => setIsMounted(true), 0)
@@ -64,23 +98,36 @@ export function StorefrontNavbar({
       ]
 
   return (
-    <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${isScrolled ? 'bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm py-0' : 'bg-white border-b border-gray-100 py-0'}`}>
+    <header 
+      className={`w-full transition-all duration-300 ${isSticky ? 'sticky top-0 z-50' : 'relative z-30'} ${
+        isScrolled ? 'backdrop-blur-md shadow-xs py-0' : 'py-0'
+      }`}
+      style={{
+        backgroundColor: activeBg,
+        borderBottom: hasBorder ? `1px solid ${borderColor}` : "none",
+      }}
+    >
       <div className="container mx-auto px-4 max-w-6xl h-16 flex items-center justify-between">
         {/* Dynamic Logo / Store Name */}
-        <Link href="/store" className="flex items-center gap-2 group">
-          {logoUrl && !logoError ? (
-            <img 
-              src={logoUrl} 
-              alt={storeName} 
-              onError={() => setLogoError(true)}
-              className="h-9 max-w-[160px] object-contain" 
-            />
-          ) : (
-            <span className="text-xl font-bold text-gray-900 tracking-tight">
-              {storeName.toUpperCase()}<span style={{ color: primaryColor }}>.</span>
-            </span>
-          )}
-        </Link>
+        {showLogo ? (
+          <Link href="/store" className="flex items-center gap-2 group">
+            {logoUrl && !logoError ? (
+              <img 
+                src={logoUrl} 
+                alt={storeName} 
+                onError={() => setLogoError(true)}
+                className="h-9 max-w-[160px] object-contain" 
+              />
+            ) : (
+              <span 
+                className="text-xl font-bold tracking-tight"
+                style={{ color: activeButtonsColor }}
+              >
+                {storeName.toUpperCase()}<span style={{ color: activeLinkColor }}>.</span>
+              </span>
+            )}
+          </Link>
+        ) : <div />}
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8">
@@ -90,8 +137,8 @@ export function StorefrontNavbar({
               <Link 
                 key={link.id || link.href} 
                 href={link.href} 
-                style={isActive ? { color: primaryColor } : {}}
-                className={`text-sm font-medium transition-all hover:-translate-y-0.5 ${isActive ? 'font-semibold' : 'text-gray-500 hover:text-gray-900'}`}
+                style={isActive ? { color: activeLinkColor } : { color: activeTextColor }}
+                className={`text-sm font-medium transition-all hover:-translate-y-0.5 ${isActive ? 'font-semibold' : 'hover:opacity-90'}`}
               >
                 {link.name}
               </Link>
@@ -100,43 +147,63 @@ export function StorefrontNavbar({
         </nav>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" style={{ color: activeButtonsColor }}>
           {/* Currency & Language selectors */}
           <div className="hidden sm:flex items-center gap-1.5 mr-1">
-            <CurrencySelector variant="compact" />
-            <LanguageSelector variant="compact" />
+            {showCurrency && <CurrencySelector variant="compact" />}
+            {showLanguage && <LanguageSelector variant="compact" />}
           </div>
 
-          <button className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-all hidden sm:block" aria-label="Search">
-            <Search className="w-[18px] h-[18px]" />
-          </button>
+          {showSearch && (
+            <button 
+              className="p-2 hover:bg-black/5 rounded-full transition-all hidden sm:block" 
+              aria-label="Search"
+              style={{ color: activeButtonsColor }}
+            >
+              <Search className="w-[18px] h-[18px]" />
+            </button>
+          )}
           
-          {session ? (
-            <div className="hidden sm:block">
-              <UserProfileDropdown user={session.user || {}} />
-            </div>
-          ) : (
-            <Link href="/store/login" className="text-xs font-semibold text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all hidden sm:block">
-              {t("common.profile", "Login")}
-            </Link>
+          {showUser && (
+            session ? (
+              <div className="hidden sm:block">
+                <UserProfileDropdown user={session.user || {}} />
+              </div>
+            ) : (
+              <Link 
+                href="/store/login" 
+                className="text-xs font-semibold px-3 py-2 rounded-lg hover:bg-black/5 transition-all hidden sm:block"
+                style={{ color: activeButtonsColor }}
+              >
+                {t("common.profile", "Login")}
+              </Link>
+            )
           )}
 
           {/* Cart Icon */}
-          <Link href="/store/cart" className="relative p-2 text-gray-700 hover:text-gray-900 rounded-full transition-all" aria-label="Shopping Cart">
-            <ShoppingCart className="w-[20px] h-[20px]" />
-            {isMounted && cartItemCount > 0 && (
-              <span 
-                className="absolute 0 top-0.5 right-0.5 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-xs animate-in zoom-in-50"
-                style={{ backgroundColor: primaryColor }}
-              >
-                {cartItemCount}
-              </span>
-            )}
-          </Link>
+          {showCart && (
+            <Link 
+              href="/store/cart" 
+              className="relative p-2 rounded-full transition-all hover:bg-black/5" 
+              aria-label="Shopping Cart"
+              style={{ color: activeButtonsColor }}
+            >
+              <ShoppingCart className="w-[20px] h-[20px]" />
+              {isMounted && cartItemCount > 0 && (
+                <span 
+                  className="absolute top-0.5 right-0.5 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-xs animate-in zoom-in-50"
+                  style={{ backgroundColor: activeLinkColor }}
+                >
+                  {cartItemCount}
+                </span>
+              )}
+            </Link>
+          )}
 
           {/* Mobile Menu Toggle */}
           <button 
-            className="p-2 text-gray-600 hover:text-gray-900 md:hidden ml-1"
+            className="p-2 md:hidden ml-1"
+            style={{ color: activeButtonsColor }}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle Navigation"
           >

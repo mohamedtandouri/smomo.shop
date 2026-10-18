@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { toast } from "sonner"
 import {
   Sliders,
   SlidersHorizontal,
@@ -24,12 +24,16 @@ import {
   ChevronUp,
   ChevronDown,
   Search,
-  Menu,
-  User,
-  ExternalLink,
   Sparkles,
 } from "lucide-react"
 import { HeroSectionManager } from "@/components/store/HeroSectionManager"
+import {
+  HeaderFooterSettingsConfig,
+  DEFAULT_HEADER_FOOTER_SETTINGS,
+  mergeHeaderFooterSettings,
+} from "@/lib/theme-config"
+import { InfoAlertBanner } from "@/components/store/theme/ThemeAtoms"
+import { HeaderFooterSettingsModule } from "@/components/store/theme/HeaderFooterSettingsModule"
 
 type ActiveTabType =
   | "hero_section"
@@ -41,11 +45,12 @@ type ActiveTabType =
   | "homepage_settings"
 
 export default function ThemeCustomizerPage() {
-  const [activeTab, setActiveTab] = useState<ActiveTabType>("hero_section")
+  // تفعيل حالة النشط (Active State) افتراضياً على "Header / Footer settings" كما في التصميم
+  const [activeTab, setActiveTab] = useState<ActiveTabType>("header_footer")
   const [loading, setLoading] = useState(false)
   const [savedNotification, setSavedNotification] = useState(false)
 
-  // 1. Homepage Settings State (الصورة 1)
+  // 1. Homepage Settings State
   const [sliderOpen, setSliderOpen] = useState(true)
   const [sliderTab, setSliderTab] = useState<"slides" | "settings">("slides")
   const [slides, setSlides] = useState([
@@ -79,11 +84,11 @@ export default function ThemeCustomizerPage() {
   const [sec2ViewType, setSec2ViewType] = useState("Slider")
   const [sec2LoadMore, setSec2LoadMore] = useState(false)
 
-  // 2. Cart Bottom Banner State (الصورة 2)
+  // 2. Cart Bottom Banner State
   const [cartBannerImage, setCartBannerImage] = useState<string>("")
   const bannerFileRef = useRef<HTMLInputElement>(null)
 
-  // 3. Product Settings State (الصورة 3)
+  // 3. Product Settings State
   const [productTab, setProductTab] = useState<"sections" | "stock" | "advanced" | "styles">("sections")
   const [productSections, setProductSections] = useState({
     title: true,
@@ -98,7 +103,7 @@ export default function ThemeCustomizerPage() {
     bundles: false,
   })
 
-  // 4. Checkout Settings State (الصورة 4)
+  // 4. Checkout Settings State
   const [checkoutFont, setCheckoutFont] = useState("Lato")
   const [checkoutColors, setCheckoutColors] = useState({
     backgroundColor: "#FFFFFF",
@@ -113,16 +118,12 @@ export default function ThemeCustomizerPage() {
   const [showCoupon, setShowCoupon] = useState(true)
   const [headerLogoUrl, setHeaderLogoUrl] = useState("")
 
-  // 5. Header / Footer Settings State (الصورة 5)
-  const [headerFooterTab, setHeaderFooterTab] = useState<
-    "mobile_header" | "desktop_header" | "footer" | "desktop_notice" | "mobile_notice"
-  >("mobile_header")
-  const [mobileHeaderBg, setMobileHeaderBg] = useState("#FFFFFF")
-  const [mobileHeaderButtonsColor, setMobileHeaderButtonsColor] = useState("#000000")
-  const [mobileHeaderBorder, setMobileHeaderBorder] = useState(true)
-  const [mobileHeaderBorderColor, setMobileHeaderBorderColor] = useState("#F0F0F0")
+  // 5. Header / Footer / Newsletter Settings State (وحدة متكاملة)
+  const [headerFooterSettings, setHeaderFooterSettings] = useState<HeaderFooterSettingsConfig>(
+    DEFAULT_HEADER_FOOTER_SETTINGS
+  )
 
-  // Load existing theme configuration
+  // جلب إعدادات القالب المحفوظة من الخادم عند التحميل
   useEffect(() => {
     async function loadTheme() {
       try {
@@ -142,6 +143,9 @@ export default function ThemeCustomizerPage() {
           if (c.cartBanner?.imageUrl) {
             setCartBannerImage(c.cartBanner.imageUrl)
           }
+          if (c.headerFooterSettings) {
+            setHeaderFooterSettings(mergeHeaderFooterSettings(c.headerFooterSettings))
+          }
         }
       } catch (e) {
         console.error("Error loading theme:", e)
@@ -150,7 +154,7 @@ export default function ThemeCustomizerPage() {
     loadTheme()
   }, [])
 
-  // Save action
+  // حفظ جميع إعدادات القالب والهيدر والفوتر والنشرة البريدية
   const handleSave = async () => {
     setLoading(true)
     try {
@@ -198,14 +202,7 @@ export default function ThemeCustomizerPage() {
           showCoupon,
           headerLogoUrl,
         },
-        headerFooterSettings: {
-          mobileHeader: {
-            background: mobileHeaderBg,
-            buttonsColor: mobileHeaderButtonsColor,
-            borderEnabled: mobileHeaderBorder,
-            borderColor: mobileHeaderBorderColor,
-          },
-        },
+        headerFooterSettings,
       }
 
       const res = await fetch("/api/store/theme", {
@@ -216,22 +213,27 @@ export default function ThemeCustomizerPage() {
       const result = await res.json()
       if (result.success) {
         setSavedNotification(true)
+        toast.success("Theme, Header, Newsletter & Footer settings saved!")
         setTimeout(() => setSavedNotification(false), 3000)
+      } else {
+        toast.error(result.error || "Failed to save theme settings")
       }
     } catch (e) {
       console.error("Failed to save theme:", e)
+      toast.error("Network error while saving theme settings")
     } finally {
       setLoading(false)
     }
   }
 
-  // Export action
+  // تصدير إعدادات القالب إلى ملف JSON
   const handleExport = () => {
     const configData = {
       homepageSettings: { sec1Title, sec2Title, slides },
       productSections,
       checkoutColors,
       checkoutFont,
+      headerFooterSettings,
     }
     const blob = new Blob([JSON.stringify(configData, null, 2)], { type: "application/json" })
     const url = URL.createObjectURL(blob)
@@ -239,9 +241,10 @@ export default function ThemeCustomizerPage() {
     a.href = url
     a.download = `smomo-theme-config-${new Date().toISOString().split("T")[0]}.json`
     a.click()
+    toast.success("Theme configuration exported as JSON")
   }
 
-  // Import action
+  // استيراد إعدادات القالب من ملف JSON
   const handleImport = () => {
     const input = document.createElement("input")
     input.type = "file"
@@ -255,9 +258,12 @@ export default function ThemeCustomizerPage() {
             const parsed = JSON.parse(event.target?.result as string)
             if (parsed.productSections) setProductSections(parsed.productSections)
             if (parsed.checkoutColors) setCheckoutColors(parsed.checkoutColors)
-            alert("Theme settings imported successfully!")
-          } catch (err) {
-            alert("Invalid JSON file")
+            if (parsed.headerFooterSettings) {
+              setHeaderFooterSettings(mergeHeaderFooterSettings(parsed.headerFooterSettings))
+            }
+            toast.success("Theme settings imported successfully!")
+          } catch {
+            toast.error("Invalid JSON configuration file")
           }
         }
         reader.readAsText(file)
@@ -267,19 +273,16 @@ export default function ThemeCustomizerPage() {
   }
 
   return (
-    <div className="space-y-6 pb-28">
-      {/* Page Title matching screenshot */}
+    <div className="space-y-5 pb-28">
+      {/* عنوان الصفحة الرئيسي */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Theme</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Theme</h1>
       </div>
 
-      {/* Global Blue Alert Banner matching all 5 screenshots */}
-      <div className="flex items-center gap-3 bg-blue-50/60 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm">
-        <Info className="h-4 w-4 text-blue-500 shrink-0" />
-        <span>Apart from checkout settings, all other settings on this page do not apply to new themes.</span>
-      </div>
+      {/* صندوق المعلومات الأزرق العلوي المطابق للصورة الأولى */}
+      <InfoAlertBanner message="Apart from checkout settings, all other settings on this page do not apply to new themes." />
 
-      {/* Toast Notification */}
+      {/* إشعار الحفظ الفوري */}
       {savedNotification && (
         <div className="fixed top-5 right-5 z-50 bg-emerald-600 text-white px-5 py-3 rounded-lg shadow-lg flex items-center gap-2 text-sm animate-in fade-in slide-in-from-top-4">
           <Check className="h-4 w-4" />
@@ -1049,173 +1052,13 @@ export default function ThemeCustomizerPage() {
           )}
 
           {/* ========================================================= */}
-          {/* TAB 2: HEADER / FOOTER SETTINGS (Screenshot 5)            */}
+          {/* TAB 2: HEADER / FOOTER / NEWSLETTER SETTINGS (CMS)        */}
           {/* ========================================================= */}
           {activeTab === "header_footer" && (
-            <div className="space-y-6">
-              {/* Blue Alert Banner */}
-              <div className="flex items-center gap-3 bg-blue-50/60 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm">
-                <Info className="h-4 w-4 text-blue-500 shrink-0" />
-                <span>In order to remove the default footer bar, please add a custom domain or select one of the packs.</span>
-              </div>
-
-              <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-6">
-                {/* Header Footer Sub-tabs */}
-                <div className="flex gap-6 border-b border-gray-200 pb-2 text-sm overflow-x-auto">
-                  <button
-                    onClick={() => setHeaderFooterTab("mobile_header")}
-                    className={`pb-2 font-medium whitespace-nowrap relative ${
-                      headerFooterTab === "mobile_header"
-                        ? "text-[#BE123C] font-semibold"
-                        : "text-gray-500 hover:text-gray-900"
-                    }`}
-                  >
-                    Mobile header
-                    {headerFooterTab === "mobile_header" && (
-                      <span className="absolute left-0 right-0 bottom-0 h-0.5 bg-[#BE123C]" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setHeaderFooterTab("desktop_header")}
-                    className={`pb-2 font-medium whitespace-nowrap relative ${
-                      headerFooterTab === "desktop_header"
-                        ? "text-[#BE123C] font-semibold"
-                        : "text-gray-500 hover:text-gray-900"
-                    }`}
-                  >
-                    Desktop header
-                    {headerFooterTab === "desktop_header" && (
-                      <span className="absolute left-0 right-0 bottom-0 h-0.5 bg-[#BE123C]" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setHeaderFooterTab("footer")}
-                    className={`pb-2 font-medium whitespace-nowrap relative ${
-                      headerFooterTab === "footer"
-                        ? "text-[#BE123C] font-semibold"
-                        : "text-gray-500 hover:text-gray-900"
-                    }`}
-                  >
-                    Footer
-                    {headerFooterTab === "footer" && (
-                      <span className="absolute left-0 right-0 bottom-0 h-0.5 bg-[#BE123C]" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setHeaderFooterTab("desktop_notice")}
-                    className={`pb-2 font-medium whitespace-nowrap relative ${
-                      headerFooterTab === "desktop_notice"
-                        ? "text-[#BE123C] font-semibold"
-                        : "text-gray-500 hover:text-gray-900"
-                    }`}
-                  >
-                    Desktop notice bar
-                    {headerFooterTab === "desktop_notice" && (
-                      <span className="absolute left-0 right-0 bottom-0 h-0.5 bg-[#BE123C]" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setHeaderFooterTab("mobile_notice")}
-                    className={`pb-2 font-medium whitespace-nowrap relative ${
-                      headerFooterTab === "mobile_notice"
-                        ? "text-[#BE123C] font-semibold"
-                        : "text-gray-500 hover:text-gray-900"
-                    }`}
-                  >
-                    Mobile notice bar
-                    {headerFooterTab === "mobile_notice" && (
-                      <span className="absolute left-0 right-0 bottom-0 h-0.5 bg-[#BE123C]" />
-                    )}
-                  </button>
-                </div>
-
-                {/* Mobile Header Visual Layout Mockup */}
-                <div className="space-y-4">
-                  <div className="border border-gray-200 rounded-xl p-3 flex items-center justify-between bg-white shadow-xs">
-                    <div className="flex items-center gap-2 border border-dashed rounded px-3 py-1.5">
-                      <Menu className="h-4 w-4 text-gray-700" />
-                      <span className="text-xs font-semibold text-gray-800">Logo</span>
-                    </div>
-
-                    <div className="flex items-center gap-3 border border-dashed rounded px-3 py-1.5 text-gray-600">
-                      <Search className="h-4 w-4" />
-                      <User className="h-4 w-4" />
-                      <ShoppingCart className="h-4 w-4" />
-                    </div>
-                  </div>
-
-                  {/* Drop unwanted items here */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-gray-500">Drop unwanted items here</label>
-                    <div className="border-2 border-dashed border-gray-200 rounded-xl h-24 flex items-center justify-center text-xs text-gray-400 bg-gray-50/50">
-                      Drag and drop here to hide from mobile navbar
-                    </div>
-                  </div>
-
-                  {/* Mobile Header Controls */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                    <div className="flex items-center justify-between p-2.5 rounded border border-gray-100">
-                      <span className="text-xs font-medium text-gray-700">Header background</span>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={mobileHeaderBg}
-                          onChange={(e) => setMobileHeaderBg(e.target.value)}
-                          className="w-7 h-7 rounded cursor-pointer border"
-                        />
-                        <Input
-                          value={mobileHeaderBg}
-                          onChange={(e) => setMobileHeaderBg(e.target.value)}
-                          className="w-24 h-8 font-mono text-xs uppercase"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between p-2.5 rounded border border-gray-100">
-                      <span className="text-xs font-medium text-gray-700">Header buttons color</span>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={mobileHeaderButtonsColor}
-                          onChange={(e) => setMobileHeaderButtonsColor(e.target.value)}
-                          className="w-7 h-7 rounded cursor-pointer border"
-                        />
-                        <Input
-                          value={mobileHeaderButtonsColor}
-                          onChange={(e) => setMobileHeaderButtonsColor(e.target.value)}
-                          className="w-24 h-8 font-mono text-xs uppercase"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between p-2.5 rounded border border-gray-100">
-                      <span className="text-xs font-medium text-gray-700">Header border</span>
-                      <Switch
-                        checked={mobileHeaderBorder}
-                        onChange={(e) => setMobileHeaderBorder(e.target.checked)}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-2.5 rounded border border-gray-100">
-                      <span className="text-xs font-medium text-gray-700">Header border color</span>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={mobileHeaderBorderColor}
-                          onChange={(e) => setMobileHeaderBorderColor(e.target.value)}
-                          className="w-7 h-7 rounded cursor-pointer border"
-                        />
-                        <Input
-                          value={mobileHeaderBorderColor}
-                          onChange={(e) => setMobileHeaderBorderColor(e.target.value)}
-                          className="w-24 h-8 font-mono text-xs uppercase"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <HeaderFooterSettingsModule
+              settings={headerFooterSettings}
+              onChange={setHeaderFooterSettings}
+            />
           )}
 
           {/* ========================================================= */}
@@ -1248,13 +1091,13 @@ export default function ThemeCustomizerPage() {
         </div>
       </div>
 
-      {/* Fixed Bottom Action Bar matching all 5 screenshots */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 py-3.5 px-6 z-40 shadow-lg flex items-center justify-end gap-3">
+      {/* الشريط السفلي الثابت للإجراءات (Import, Export, Save) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 py-3.5 px-6 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] flex items-center justify-end gap-3">
         <Button
           type="button"
           variant="outline"
           onClick={handleImport}
-          className="bg-[#9D174D] hover:bg-[#831843] text-white border-none text-xs font-medium h-9 px-4 rounded-lg shadow-sm"
+          className="bg-[#9E1C40] hover:bg-[#831843] text-white hover:text-white border-none text-xs font-semibold h-9 px-4 rounded-lg shadow-xs transition-all hover:-translate-y-0.5 cursor-pointer"
         >
           <Download className="h-3.5 w-3.5 mr-1.5" />
           Import
@@ -1264,7 +1107,7 @@ export default function ThemeCustomizerPage() {
           type="button"
           variant="outline"
           onClick={handleExport}
-          className="bg-[#9D174D] hover:bg-[#831843] text-white border-none text-xs font-medium h-9 px-4 rounded-lg shadow-sm"
+          className="bg-[#9E1C40] hover:bg-[#831843] text-white hover:text-white border-none text-xs font-semibold h-9 px-4 rounded-lg shadow-xs transition-all hover:-translate-y-0.5 cursor-pointer"
         >
           <Upload className="h-3.5 w-3.5 mr-1.5" />
           Export
@@ -1274,7 +1117,7 @@ export default function ThemeCustomizerPage() {
           type="button"
           onClick={handleSave}
           disabled={loading}
-          className="bg-[#9D174D] hover:bg-[#831843] text-white border-none text-xs font-medium h-9 px-5 rounded-lg shadow-sm"
+          className="bg-[#9E1C40] hover:bg-[#831843] text-white hover:text-white border-none text-xs font-semibold h-9 px-5 rounded-lg shadow-xs transition-all hover:-translate-y-0.5 cursor-pointer"
         >
           <Save className="h-3.5 w-3.5 mr-1.5" />
           {loading ? "Saving..." : "Save"}
